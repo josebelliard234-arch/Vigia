@@ -1,0 +1,17 @@
+{
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/*.pyo": true,
+    "**/*.pyd": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/*.spec": true
+  },
+  "search.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/build": true,
+    "**/dist": true
+  }
+}

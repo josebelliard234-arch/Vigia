@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+*.spec
+.env
+.venv/
+venv/
+.DS_Store
+
+# Configuración local del IDE / Claude Code
+.claude/
+
+# NO ignorar datos.db — se incluye en el repo para que el deploy tenga datos
+# datos.db no está en ninguna regla de ignore, así que se sube
