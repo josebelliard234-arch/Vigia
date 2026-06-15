@@ -3,3 +3,5 @@ pandas==3.0.3
 plotly==6.7.0
 openpyxl==3.1.5
 streamlit-option-menu==0.4.0
+sqlalchemy==2.0.41
+psycopg2-binary>=2.9.9

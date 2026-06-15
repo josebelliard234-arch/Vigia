@@ -3,8 +3,8 @@ import re
 import sqlite3
 import pandas as pd
 from datetime import datetime
-
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datos.db")
+from sqlalchemy import create_engine, text
+import streamlit as st
 
 DEMO_MODE = os.environ.get("DASHBOARD_PJ_DEMO", "0").strip().lower() in {"1", "true", "yes", "si"}
 
@@ -15,6 +15,8 @@ _ROL_COLOR = {
     "Analista":      "#3B82F6",
     "Visualizador":  "#64748B",
 }
+
+_SQLITE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datos.db")
 
 
 # ------------------------------------------------------------
@@ -43,15 +45,48 @@ def _normalizar_columnas(df):
 
 
 # ------------------------------------------------------------
-# CONEXION Y ESQUEMA
+# CONEXION — PostgreSQL en la nube, SQLite en local
 # ------------------------------------------------------------
+def _get_db_url():
+    try:
+        url = st.secrets.get("DATABASE_URL", "")
+    except Exception:
+        url = ""
+    if not url:
+        url = os.environ.get("DATABASE_URL", "")
+    return url or None
+
+
+def _is_postgres():
+    return _get_db_url() is not None
+
+
+@st.cache_resource
+def _get_engine():
+    url = _get_db_url()
+    if url:
+        return create_engine(url)
+    return create_engine(f"sqlite:///{_SQLITE_PATH}")
+
+
+def get_engine():
+    return _get_engine()
+
+
 def get_conn():
-    return sqlite3.connect(DB_PATH)
+    return _get_engine().begin()
 
 
+# ------------------------------------------------------------
+# ESQUEMA
+# ------------------------------------------------------------
 def init_db():
+    pg = _is_postgres()
+    serial = "SERIAL" if pg else "INTEGER"
+    real   = "DOUBLE PRECISION" if pg else "REAL"
+
     with get_conn() as con:
-        con.execute("""
+        con.execute(text(f"""
             CREATE TABLE IF NOT EXISTS precios (
                 semana       TEXT,
                 provincia    TEXT,
@@ -60,144 +95,181 @@ def init_db():
                 id_producto  INTEGER,
                 producto     TEXT,
                 presentacion TEXT,
-                precio       REAL,
+                precio       {real},
                 fuente       TEXT DEFAULT 'bruto',
                 PRIMARY KEY (semana, provincia, supermercado, id_producto, presentacion)
             )
-        """)
-        con.execute("""
+        """))
+        con.execute(text(f"""
             CREATE TABLE IF NOT EXISTS precios_supermercado (
                 semana       TEXT,
                 id_producto  INTEGER,
                 producto     TEXT,
                 presentacion TEXT,
                 supermercado TEXT,
-                precio       REAL,
+                precio       {real},
                 PRIMARY KEY (semana, id_producto, presentacion, supermercado)
             )
-        """)
-        con.execute("""
+        """))
+        con.execute(text(f"""
             CREATE TABLE IF NOT EXISTS productos_clave (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                producto     TEXT,
-                presentacion TEXT,
-                precio_sem_ant REAL,
-                precio_sem_act REAL,
-                variacion_abs  REAL,
-                variacion_pct  REAL,
-                fecha_ant    TEXT,
-                fecha_act    TEXT
+                id             {serial} PRIMARY KEY,
+                producto       TEXT,
+                presentacion   TEXT,
+                precio_sem_ant {real},
+                precio_sem_act {real},
+                variacion_abs  {real},
+                variacion_pct  {real},
+                fecha_ant      TEXT,
+                fecha_act      TEXT
             )
-        """)
-        con.execute("""
+        """))
+        con.execute(text("""
             CREATE TABLE IF NOT EXISTS monitoreos_cargados (
-                semana       TEXT PRIMARY KEY,
+                semana         TEXT PRIMARY KEY,
                 nombre_archivo TEXT,
-                fecha_carga  TEXT,
-                registros    INTEGER
+                fecha_carga    TEXT,
+                registros      INTEGER
             )
-        """)
-        # Tabla usuarios base — las columnas de auth se agregan en init_auth_db()
-        con.execute("""
+        """))
+        con.execute(text(f"""
             CREATE TABLE IF NOT EXISTS usuarios (
-                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                id             {serial} PRIMARY KEY,
                 nombre         TEXT NOT NULL,
                 email          TEXT,
                 rol            TEXT DEFAULT 'Visualizador',
                 activo         INTEGER DEFAULT 1,
                 fecha_creacion TEXT
             )
-        """)
-        con.commit()
+        """))
 
 
 # ------------------------------------------------------------
 # ESCRITURA
 # ------------------------------------------------------------
 def save_to_db(df, fuente='bruto'):
+    pg = _is_postgres()
     with get_conn() as con:
         for _, r in df.iterrows():
-            con.execute("""
-                INSERT OR REPLACE INTO precios
-                    (semana, provincia, supermercado, categoria,
-                     id_producto, producto, presentacion, precio, fuente)
-                VALUES (?,?,?,?,?,?,?,?,?)
-            """, (r.semana, r.provincia, r.supermercado, r.categoria,
-                  r.id_producto, r.producto, r.presentacion, r.precio, fuente))
-        con.commit()
+            if pg:
+                sql = text("""
+                    INSERT INTO precios
+                        (semana, provincia, supermercado, categoria,
+                         id_producto, producto, presentacion, precio, fuente)
+                    VALUES (:semana, :provincia, :supermercado, :categoria,
+                            :id_producto, :producto, :presentacion, :precio, :fuente)
+                    ON CONFLICT (semana, provincia, supermercado, id_producto, presentacion)
+                    DO UPDATE SET
+                        precio    = EXCLUDED.precio,
+                        fuente    = EXCLUDED.fuente,
+                        categoria = EXCLUDED.categoria,
+                        producto  = EXCLUDED.producto
+                """)
+            else:
+                sql = text("""
+                    INSERT OR REPLACE INTO precios
+                        (semana, provincia, supermercado, categoria,
+                         id_producto, producto, presentacion, precio, fuente)
+                    VALUES (:semana, :provincia, :supermercado, :categoria,
+                            :id_producto, :producto, :presentacion, :precio, :fuente)
+                """)
+            con.execute(sql, {
+                "semana": r.semana, "provincia": r.provincia,
+                "supermercado": r.supermercado, "categoria": r.categoria,
+                "id_producto": int(r.id_producto), "producto": r.producto,
+                "presentacion": r.presentacion, "precio": float(r.precio),
+                "fuente": fuente,
+            })
 
 
 def save_supermercado_to_db(df):
+    pg = _is_postgres()
     with get_conn() as con:
-        con.execute("DELETE FROM precios_supermercado")
+        con.execute(text("DELETE FROM precios_supermercado"))
         for _, r in df.iterrows():
-            con.execute("""
-                INSERT OR REPLACE INTO precios_supermercado
-                    (semana, id_producto, producto, presentacion, supermercado, precio)
-                VALUES (?,?,?,?,?,?)
-            """, (r.semana, r.id_producto, r.producto, r.presentacion,
-                  r.supermercado, r.precio))
-        con.commit()
+            if pg:
+                sql = text("""
+                    INSERT INTO precios_supermercado
+                        (semana, id_producto, producto, presentacion, supermercado, precio)
+                    VALUES (:semana, :id_producto, :producto, :presentacion, :supermercado, :precio)
+                    ON CONFLICT (semana, id_producto, presentacion, supermercado)
+                    DO UPDATE SET precio = EXCLUDED.precio, producto = EXCLUDED.producto
+                """)
+            else:
+                sql = text("""
+                    INSERT OR REPLACE INTO precios_supermercado
+                        (semana, id_producto, producto, presentacion, supermercado, precio)
+                    VALUES (:semana, :id_producto, :producto, :presentacion, :supermercado, :precio)
+                """)
+            con.execute(sql, {
+                "semana": r.semana, "id_producto": int(r.id_producto),
+                "producto": r.producto, "presentacion": r.presentacion,
+                "supermercado": r.supermercado, "precio": float(r.precio),
+            })
 
 
 def save_productos_clave_to_db(df):
     with get_conn() as con:
-        con.execute("DELETE FROM productos_clave")
+        con.execute(text("DELETE FROM productos_clave"))
         for _, r in df.iterrows():
-            con.execute("""
+            con.execute(text("""
                 INSERT INTO productos_clave
                     (producto, presentacion, precio_sem_ant, precio_sem_act,
                      variacion_abs, variacion_pct, fecha_ant, fecha_act)
-                VALUES (?,?,?,?,?,?,?,?)
-            """, (r.producto, r.presentacion, r.precio_sem_ant, r.precio_sem_act,
-                  r.variacion_abs, r.variacion_pct, r.fecha_ant, r.fecha_act))
-        con.commit()
+                VALUES (:producto, :presentacion, :precio_sem_ant, :precio_sem_act,
+                        :variacion_abs, :variacion_pct, :fecha_ant, :fecha_act)
+            """), {
+                "producto": r.producto, "presentacion": r.presentacion,
+                "precio_sem_ant": float(r.precio_sem_ant),
+                "precio_sem_act": float(r.precio_sem_act),
+                "variacion_abs": float(r.variacion_abs),
+                "variacion_pct": float(r.variacion_pct),
+                "fecha_ant": r.fecha_ant, "fecha_act": r.fecha_act,
+            })
 
 
 # ------------------------------------------------------------
 # LECTURA
 # ------------------------------------------------------------
 def load_all():
-    with get_conn() as con:
-        df = pd.read_sql("SELECT * FROM precios ORDER BY semana", con)
+    df = pd.read_sql("SELECT * FROM precios ORDER BY semana", get_engine())
     return _normalizar_columnas(df)
 
 
 def load_validados():
-    with get_conn() as con:
-        df = pd.read_sql(
-            "SELECT * FROM precios WHERE fuente='validado' ORDER BY semana", con)
+    df = pd.read_sql(
+        "SELECT * FROM precios WHERE fuente='validado' ORDER BY semana",
+        get_engine(),
+    )
     return _normalizar_columnas(df)
 
 
 def load_supermercado():
-    with get_conn() as con:
-        try:
-            df = pd.read_sql("SELECT * FROM precios_supermercado", con)
-        except Exception:
-            return pd.DataFrame()
+    try:
+        df = pd.read_sql("SELECT * FROM precios_supermercado", get_engine())
+    except Exception:
+        return pd.DataFrame()
     return _normalizar_columnas(df)
 
 
 def load_productos_clave():
-    with get_conn() as con:
-        try:
-            df = pd.read_sql("SELECT * FROM productos_clave", con)
-        except Exception:
-            return pd.DataFrame()
+    try:
+        df = pd.read_sql("SELECT * FROM productos_clave", get_engine())
+    except Exception:
+        return pd.DataFrame()
     return _normalizar_columnas(df)
 
 
 def semanas_en_db():
     with get_conn() as con:
-        cur = con.execute("SELECT DISTINCT semana FROM precios ORDER BY semana")
+        cur = con.execute(text("SELECT DISTINCT semana FROM precios ORDER BY semana"))
         return [r[0] for r in cur.fetchall()]
 
 
 def count_validados():
     with get_conn() as con:
         try:
-            cur = con.execute("SELECT COUNT(*) FROM precios WHERE fuente='validado'")
+            cur = con.execute(text("SELECT COUNT(*) FROM precios WHERE fuente='validado'"))
             return cur.fetchone()[0]
         except Exception:
             return 0
@@ -205,15 +277,16 @@ def count_validados():
 
 def semanas_validadas():
     with get_conn() as con:
-        cur = con.execute(
-            "SELECT DISTINCT semana FROM precios WHERE fuente='validado' ORDER BY semana")
+        cur = con.execute(text(
+            "SELECT DISTINCT semana FROM precios WHERE fuente='validado' ORDER BY semana"
+        ))
         return [r[0] for r in cur.fetchall()]
 
 
 def count_supermercado():
     with get_conn() as con:
         try:
-            cur = con.execute("SELECT COUNT(*) FROM precios_supermercado")
+            cur = con.execute(text("SELECT COUNT(*) FROM precios_supermercado"))
             return cur.fetchone()[0]
         except Exception:
             return 0
@@ -222,30 +295,46 @@ def count_supermercado():
 def count_productos_clave():
     with get_conn() as con:
         try:
-            cur = con.execute("SELECT COUNT(*) FROM productos_clave")
+            cur = con.execute(text("SELECT COUNT(*) FROM productos_clave"))
             return cur.fetchone()[0]
         except Exception:
             return 0
 
 
 def registrar_monitoreo_cargado(semana, nombre_archivo, registros):
+    pg = _is_postgres()
     with get_conn() as con:
-        con.execute("""
-            INSERT OR REPLACE INTO monitoreos_cargados
-                (semana, nombre_archivo, fecha_carga, registros)
-            VALUES (?,?,?,?)
-        """, (semana, nombre_archivo,
-              datetime.now().strftime("%d/%m/%Y %I:%M %p"), int(registros)))
-        con.commit()
+        if pg:
+            sql = text("""
+                INSERT INTO monitoreos_cargados
+                    (semana, nombre_archivo, fecha_carga, registros)
+                VALUES (:semana, :nombre_archivo, :fecha_carga, :registros)
+                ON CONFLICT (semana) DO UPDATE SET
+                    nombre_archivo = EXCLUDED.nombre_archivo,
+                    fecha_carga    = EXCLUDED.fecha_carga,
+                    registros      = EXCLUDED.registros
+            """)
+        else:
+            sql = text("""
+                INSERT OR REPLACE INTO monitoreos_cargados
+                    (semana, nombre_archivo, fecha_carga, registros)
+                VALUES (:semana, :nombre_archivo, :fecha_carga, :registros)
+            """)
+        con.execute(sql, {
+            "semana": semana,
+            "nombre_archivo": nombre_archivo,
+            "fecha_carga": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
+            "registros": int(registros),
+        })
 
 
 def load_monitoreos_cargados():
     with get_conn() as con:
         try:
-            cur = con.execute(
+            cur = con.execute(text(
                 "SELECT semana, nombre_archivo, fecha_carga, registros "
                 "FROM monitoreos_cargados ORDER BY semana DESC"
-            )
+            ))
             return cur.fetchall()
         except Exception:
             return []
@@ -253,9 +342,8 @@ def load_monitoreos_cargados():
 
 def eliminar_monitoreo_cargado(semana):
     with get_conn() as con:
-        con.execute("DELETE FROM monitoreos_cargados WHERE semana=?", (semana,))
-        con.execute("DELETE FROM precios WHERE semana=? AND fuente='bruto'", (semana,))
-        con.commit()
+        con.execute(text("DELETE FROM monitoreos_cargados WHERE semana=:semana"), {"semana": semana})
+        con.execute(text("DELETE FROM precios WHERE semana=:semana AND fuente='bruto'"), {"semana": semana})
 
 
 def wipe_db(que="todo"):
@@ -263,21 +351,20 @@ def wipe_db(que="todo"):
     with get_conn() as con:
         for t in antes:
             try:
-                antes[t] = con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+                antes[t] = con.execute(text(f"SELECT COUNT(*) FROM {t}")).fetchone()[0]
             except Exception:
                 antes[t] = 0
 
         if que == "todo":
-            con.execute("DELETE FROM precios")
-            con.execute("DELETE FROM precios_supermercado")
-            con.execute("DELETE FROM productos_clave")
-            con.execute("DELETE FROM monitoreos_cargados")
+            con.execute(text("DELETE FROM precios"))
+            con.execute(text("DELETE FROM precios_supermercado"))
+            con.execute(text("DELETE FROM productos_clave"))
+            con.execute(text("DELETE FROM monitoreos_cargados"))
         elif que == "bruto":
-            con.execute("DELETE FROM precios WHERE fuente='bruto'")
-            con.execute("DELETE FROM monitoreos_cargados")
+            con.execute(text("DELETE FROM precios WHERE fuente='bruto'"))
+            con.execute(text("DELETE FROM monitoreos_cargados"))
         elif que == "validado":
-            con.execute("DELETE FROM precios WHERE fuente='validado'")
-            con.execute("DELETE FROM precios_supermercado")
-            con.execute("DELETE FROM productos_clave")
-        con.commit()
+            con.execute(text("DELETE FROM precios WHERE fuente='validado'"))
+            con.execute(text("DELETE FROM precios_supermercado"))
+            con.execute(text("DELETE FROM productos_clave"))
     return antes

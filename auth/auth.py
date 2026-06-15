@@ -3,8 +3,9 @@ import os
 import pandas as pd
 import streamlit as st
 from datetime import datetime
+from sqlalchemy import text
 
-from data.database import get_conn
+from data.database import get_conn, get_engine, _is_postgres
 
 
 # ============================================================
@@ -27,24 +28,23 @@ def verify_password(password: str, password_hash: str, salt: str) -> bool:
 # MIGRACION E INICIALIZACION
 # ============================================================
 def init_auth_db():
-    """Migra la tabla usuarios para agregar columnas de autenticacion y crea usuarios por defecto."""
+    """Agrega columnas de autenticacion si no existen y crea usuarios por defecto."""
     with get_conn() as con:
-        existing_cols = {
-            row[1]
-            for row in con.execute("PRAGMA table_info(usuarios)").fetchall()
-        }
-        if "username" not in existing_cols:
-            con.execute("ALTER TABLE usuarios ADD COLUMN username TEXT")
-        if "password_hash" not in existing_cols:
-            con.execute("ALTER TABLE usuarios ADD COLUMN password_hash TEXT")
-        if "salt" not in existing_cols:
-            con.execute("ALTER TABLE usuarios ADD COLUMN salt TEXT")
-        con.commit()
+        if _is_postgres():
+            con.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS username TEXT"))
+            con.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash TEXT"))
+            con.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS salt TEXT"))
+        else:
+            existing = {
+                row[1] for row in con.execute(text("PRAGMA table_info(usuarios)")).fetchall()
+            }
+            for col in ("username", "password_hash", "salt"):
+                if col not in existing:
+                    con.execute(text(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT"))
 
-        # Crear usuarios por defecto solo si no existe ninguno con username asignado
-        count = con.execute(
+        count = con.execute(text(
             "SELECT COUNT(*) FROM usuarios WHERE username IS NOT NULL AND username != ''"
-        ).fetchone()[0]
+        )).fetchone()[0]
         if count == 0:
             defaults = [
                 ("Admin1",  "1234", "Administrador"),
@@ -54,13 +54,14 @@ def init_auth_db():
             now = datetime.now().strftime("%d/%m/%Y %I:%M %p")
             for username, password, rol in defaults:
                 ph, salt = hash_password(password)
-                con.execute(
-                    """INSERT INTO usuarios
+                con.execute(text("""
+                    INSERT INTO usuarios
                        (nombre, email, rol, activo, fecha_creacion, username, password_hash, salt)
-                       VALUES (?,?,?,1,?,?,?,?)""",
-                    (username, "", rol, now, username, ph, salt),
-                )
-            con.commit()
+                       VALUES (:nombre, :email, :rol, 1, :fecha, :username, :ph, :salt)
+                """), {
+                    "nombre": username, "email": "", "rol": rol,
+                    "fecha": now, "username": username, "ph": ph, "salt": salt,
+                })
 
 
 # ============================================================
@@ -71,19 +72,21 @@ def create_user(username: str, password: str, rol: str,
     """Crea un usuario con contrasena hasheada. Devuelve False si el username ya existe."""
     with get_conn() as con:
         exists = con.execute(
-            "SELECT 1 FROM usuarios WHERE username=?", (username,)
+            text("SELECT 1 FROM usuarios WHERE username=:u"), {"u": username}
         ).fetchone()
         if exists:
             return False
         ph, salt = hash_password(password)
         now = datetime.now().strftime("%d/%m/%Y %I:%M %p")
-        con.execute(
-            """INSERT INTO usuarios
+        con.execute(text("""
+            INSERT INTO usuarios
                (nombre, email, rol, activo, fecha_creacion, username, password_hash, salt)
-               VALUES (?,?,?,1,?,?,?,?)""",
-            (nombre or username, email or "", rol, now, username, ph, salt),
-        )
-        con.commit()
+               VALUES (:nombre, :email, :rol, 1, :fecha, :username, :ph, :salt)
+        """), {
+            "nombre": nombre or username, "email": email or "",
+            "rol": rol, "fecha": now,
+            "username": username, "ph": ph, "salt": salt,
+        })
     return True
 
 
@@ -93,37 +96,44 @@ def update_user_auth(uid: int, nombre: str, email: str, rol: str,
     with get_conn() as con:
         if new_password and new_password.strip():
             ph, salt = hash_password(new_password.strip())
-            con.execute(
-                "UPDATE usuarios SET nombre=?, email=?, rol=?, activo=?, password_hash=?, salt=? WHERE id=?",
-                (nombre.strip(), email.strip(), rol, int(activo), ph, salt, uid),
-            )
+            con.execute(text("""
+                UPDATE usuarios
+                SET nombre=:nombre, email=:email, rol=:rol, activo=:activo,
+                    password_hash=:ph, salt=:salt
+                WHERE id=:uid
+            """), {
+                "nombre": nombre.strip(), "email": email.strip(),
+                "rol": rol, "activo": int(activo),
+                "ph": ph, "salt": salt, "uid": uid,
+            })
         else:
-            con.execute(
-                "UPDATE usuarios SET nombre=?, email=?, rol=?, activo=? WHERE id=?",
-                (nombre.strip(), email.strip(), rol, int(activo), uid),
-            )
-        con.commit()
+            con.execute(text("""
+                UPDATE usuarios
+                SET nombre=:nombre, email=:email, rol=:rol, activo=:activo
+                WHERE id=:uid
+            """), {
+                "nombre": nombre.strip(), "email": email.strip(),
+                "rol": rol, "activo": int(activo), "uid": uid,
+            })
 
 
 def delete_user(uid: int):
     with get_conn() as con:
-        con.execute("DELETE FROM usuarios WHERE id=?", (uid,))
-        con.commit()
+        con.execute(text("DELETE FROM usuarios WHERE id=:uid"), {"uid": uid})
 
 
 def load_users_safe() -> pd.DataFrame:
     """Carga usuarios sin exponer password_hash ni salt."""
-    with get_conn() as con:
-        try:
-            return pd.read_sql(
-                "SELECT id, username, nombre, email, rol, activo, fecha_creacion "
-                "FROM usuarios ORDER BY nombre",
-                con,
-            )
-        except Exception:
-            return pd.DataFrame(
-                columns=["id", "username", "nombre", "email", "rol", "activo", "fecha_creacion"]
-            )
+    try:
+        return pd.read_sql(
+            "SELECT id, username, nombre, email, rol, activo, fecha_creacion "
+            "FROM usuarios ORDER BY nombre",
+            get_engine(),
+        )
+    except Exception:
+        return pd.DataFrame(
+            columns=["id", "username", "nombre", "email", "rol", "activo", "fecha_creacion"]
+        )
 
 
 # ============================================================
@@ -132,11 +142,10 @@ def load_users_safe() -> pd.DataFrame:
 def verify_login(username: str, password: str):
     """Devuelve dict con datos del usuario si las credenciales son correctas, None si no."""
     with get_conn() as con:
-        row = con.execute(
+        row = con.execute(text(
             "SELECT id, username, password_hash, salt, rol, activo, nombre "
-            "FROM usuarios WHERE username=?",
-            (username,),
-        ).fetchone()
+            "FROM usuarios WHERE username=:u"
+        ), {"u": username}).fetchone()
     if not row:
         return None
     uid, uname, ph, salt, rol, activo, nombre = row
