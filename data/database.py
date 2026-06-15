@@ -65,7 +65,7 @@ def _is_postgres():
 def _get_engine():
     url = _get_db_url()
     if url:
-        return create_engine(url)
+        return create_engine(url, connect_args={"sslmode": "require"})
     return create_engine(f"sqlite:///{_SQLITE_PATH}")
 
 
