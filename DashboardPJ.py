@@ -33,6 +33,7 @@ from styles.theme import (
 )
 from styles.custom_css import apply_css
 
+from sqlalchemy import text
 from data.database import (
     DEMO_MODE, get_conn,
     init_db,
@@ -216,10 +217,9 @@ with st.sidebar:
                         df_preview["semana"] = sem_final
                         with get_conn() as con:
                             con.execute(
-                                "DELETE FROM precios WHERE semana=? AND fuente='bruto'",
-                                (sem_final,)
+                                text("DELETE FROM precios WHERE semana=:s AND fuente='bruto'"),
+                                {"s": sem_final}
                             )
-                            con.commit()
                         save_to_db(df_preview, fuente="bruto")
                         registrar_monitoreo_cargado(sem_final, f.name, len(df_preview))
                         st.success(f"Importado: {len(df_preview):,} registros")
@@ -293,8 +293,7 @@ with st.sidebar:
             if not df_hist_prev.empty:
                 if st.button("Confirmar e importar todo", key="btn_hist"):
                     with get_conn() as con:
-                        con.execute("DELETE FROM precios WHERE fuente='validado'")
-                        con.commit()
+                        con.execute(text("DELETE FROM precios WHERE fuente='validado'"))
                     save_to_db(df_hist_prev, fuente="validado")
                     if not df_sup_prev.empty:
                         save_supermercado_to_db(df_sup_prev)
