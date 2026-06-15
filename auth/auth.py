@@ -29,12 +29,21 @@ def verify_password(password: str, password_hash: str, salt: str) -> bool:
 # ============================================================
 def init_auth_db():
     """Agrega columnas de autenticacion si no existen y crea usuarios por defecto."""
-    with get_conn() as con:
-        if _is_postgres():
-            con.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS username TEXT"))
-            con.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash TEXT"))
-            con.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS salt TEXT"))
-        else:
+    if _is_postgres():
+        # En PostgreSQL usamos PL/pgSQL para agregar columnas sin abortar la transaccion
+        for col in ("username", "password_hash", "salt"):
+            try:
+                with get_conn() as con:
+                    con.execute(text(f"""
+                        DO $$ BEGIN
+                            ALTER TABLE usuarios ADD COLUMN {col} TEXT;
+                        EXCEPTION WHEN duplicate_column THEN NULL;
+                        END $$;
+                    """))
+            except Exception:
+                pass
+    else:
+        with get_conn() as con:
             existing = {
                 row[1] for row in con.execute(text("PRAGMA table_info(usuarios)")).fetchall()
             }
@@ -42,6 +51,7 @@ def init_auth_db():
                 if col not in existing:
                     con.execute(text(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT"))
 
+    with get_conn() as con:
         count = con.execute(text(
             "SELECT COUNT(*) FROM usuarios WHERE username IS NOT NULL AND username != ''"
         )).fetchone()[0]

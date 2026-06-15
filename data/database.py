@@ -139,7 +139,10 @@ def init_db():
                 email          TEXT,
                 rol            TEXT DEFAULT 'Visualizador',
                 activo         INTEGER DEFAULT 1,
-                fecha_creacion TEXT
+                fecha_creacion TEXT,
+                username       TEXT,
+                password_hash  TEXT,
+                salt           TEXT
             )
         """))
 
