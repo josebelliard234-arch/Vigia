@@ -39,6 +39,24 @@ def render_comparativa(ctx):
         st.warning("No hay productos en comun entre las dos semanas.")
         return
 
+    # ── Filtro de supermercado ───────────────────────────────
+    sups_disp = sorted(merged["supermercado"].dropna().astype(str).unique())
+    sup_sel_comp = st.multiselect(
+        "Supermercado",
+        options=sups_disp,
+        default=sups_disp,
+        key="comp_sup_sel",
+        help="Filtra la comparativa por uno o varios supermercados.",
+    )
+    if not sup_sel_comp:
+        st.info("Selecciona al menos un supermercado para ver la comparativa.")
+        return
+    if len(sup_sel_comp) < len(sups_disp):
+        merged = merged[merged["supermercado"].isin(sup_sel_comp)].reset_index(drop=True)
+        if merged.empty:
+            st.info("No hay datos para los supermercados seleccionados.")
+            return
+
     # ── Cargar marcadores para la semana actual ──────────────
     _marc_lookup = {}
     try:
