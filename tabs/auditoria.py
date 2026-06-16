@@ -3,29 +3,33 @@ import pandas as pd
 from data.database import load_audit_log
 
 _ACCION_COLOR = {
-    "LOGIN":       "#22C55E",
-    "LOGIN_FAIL":  "#EF4444",
-    "LOGOUT":      "#94A3B8",
-    "UPLOAD":      "#3B82F6",
-    "DELETE":      "#F97316",
-    "WIPE":        "#EF4444",
-    "EDIT_PRICE":  "#A855F7",
-    "CREATE_USER": "#22C55E",
-    "UPDATE_USER": "#F59E0B",
-    "DELETE_USER": "#EF4444",
+    "LOGIN":        "#22C55E",
+    "LOGIN_FAIL":   "#EF4444",
+    "LOGOUT":       "#94A3B8",
+    "UPLOAD":       "#3B82F6",
+    "DELETE":       "#F97316",
+    "WIPE":         "#EF4444",
+    "EDIT_PRICE":   "#A855F7",
+    "CREATE_USER":  "#22C55E",
+    "UPDATE_USER":  "#F59E0B",
+    "DELETE_USER":  "#EF4444",
+    "MARK_PRICE":   "#F59E0B",
+    "UNMARK_PRICE": "#94A3B8",
 }
 
 _ACCION_LABEL = {
-    "LOGIN":       "Inicio de sesion",
-    "LOGIN_FAIL":  "Intento fallido de login",
-    "LOGOUT":      "Cierre de sesion",
-    "UPLOAD":      "Archivo subido",
-    "DELETE":      "Eliminacion de datos",
-    "WIPE":        "Limpieza de base de datos",
-    "EDIT_PRICE":  "Precio modificado",
-    "CREATE_USER": "Usuario creado",
-    "UPDATE_USER": "Usuario modificado",
-    "DELETE_USER": "Usuario eliminado",
+    "LOGIN":        "Inicio de sesion",
+    "LOGIN_FAIL":   "Intento fallido de login",
+    "LOGOUT":       "Cierre de sesion",
+    "UPLOAD":       "Archivo subido",
+    "DELETE":       "Eliminacion de datos",
+    "WIPE":         "Limpieza de base de datos",
+    "EDIT_PRICE":   "Precio modificado",
+    "CREATE_USER":  "Usuario creado",
+    "UPDATE_USER":  "Usuario modificado",
+    "DELETE_USER":  "Usuario eliminado",
+    "MARK_PRICE":   "Precio marcado",
+    "UNMARK_PRICE": "Precio desmarcado",
 }
 
 

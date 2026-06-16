@@ -2,8 +2,45 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy import text
 
-from data.database import load_all, get_conn, DEMO_MODE, log_action
+from data.database import (
+    load_all, get_conn, DEMO_MODE, log_action,
+    save_marcador, delete_marcador, load_marcadores,
+)
 from utils.dates import fmt_sem
+
+_COLORES = {
+    "🟡 Amarillo — atencion":  "#F59E0B",
+    "🔴 Rojo — problema":      "#EF4444",
+    "🟢 Verde — validado":     "#22C55E",
+    "🔵 Azul — pendiente":     "#3B82F6",
+    "🟠 Naranja — revisar":    "#F97316",
+}
+
+_EMOJI = {
+    "#F59E0B": "🟡",
+    "#EF4444": "🔴",
+    "#22C55E": "🟢",
+    "#3B82F6": "🔵",
+    "#F97316": "🟠",
+}
+
+
+def _build_marcas_str(df_marc, producto, presentacion, sup_cols):
+    """Retorna un string con los emojis + supermercados marcados para una fila del pivot."""
+    if df_marc.empty:
+        return ""
+    parts = []
+    for sc in sup_cols:
+        m = df_marc[
+            (df_marc["supermercado"] == sc) &
+            (df_marc["producto"]     == producto) &
+            (df_marc["presentacion"] == presentacion)
+        ]
+        if not m.empty:
+            emoji = _EMOJI.get(m.iloc[0]["color"], "●")
+            nota  = str(m.iloc[0].get("nota", "") or "")
+            parts.append(f"{emoji} {sc}" + (f" ({nota[:18]})" if nota else ""))
+    return " · ".join(parts)
 
 
 def render_edicion_datos():
@@ -25,11 +62,11 @@ def render_edicion_datos():
 
     semanas = sorted(df["semana"].unique())
     sem_sel = fc1.selectbox("Semana", semanas, index=len(semanas) - 1, key="ed_sem")
-    df_sem = df[df["semana"] == sem_sel].copy()
+    df_sem  = df[df["semana"] == sem_sel].copy()
 
-    cats = ["Todas"] + sorted(df_sem["categoria"].dropna().unique())
+    cats    = ["Todas"] + sorted(df_sem["categoria"].dropna().unique())
     cat_sel = fc2.selectbox("Categoria", cats, key="ed_cat")
-    df_cat = df_sem if cat_sel == "Todas" else df_sem[df_sem["categoria"] == cat_sel]
+    df_cat  = df_sem if cat_sel == "Todas" else df_sem[df_sem["categoria"] == cat_sel]
 
     provincias = sorted(df_sem["provincia"].dropna().unique())
     sups_all   = sorted(df_sem["supermercado"].dropna().unique())
@@ -43,12 +80,12 @@ def render_edicion_datos():
         return
 
     fe1, fe2 = st.columns(2)
-    prods = ["Todos"] + sorted(df_cat["producto"].dropna().unique())
+    prods    = ["Todos"] + sorted(df_cat["producto"].dropna().unique())
     prod_sel = fe1.selectbox("Producto", prods, key="ed_prod")
 
     df_for_pres = df_cat if prod_sel == "Todos" else df_cat[df_cat["producto"] == prod_sel]
-    pres_opts = ["Todas"] + sorted(df_for_pres["presentacion"].dropna().unique())
-    pres_sel = fe2.selectbox("Presentacion", pres_opts, key="ed_pres")
+    pres_opts   = ["Todas"] + sorted(df_for_pres["presentacion"].dropna().unique())
+    pres_sel    = fe2.selectbox("Presentacion", pres_opts, key="ed_pres")
 
     # ─── APLICAR FILTROS ─────────────────────────────────────
     df_f = df_sem.copy()
@@ -65,49 +102,53 @@ def render_edicion_datos():
         st.info("No hay registros con estos filtros.")
         return
 
-    # ─── MODO SOLO LECTURA si hay ambiguedad de provincia ────
-    readonly_mode = False
-    if len(prov_sel) != 1:
-        st.warning(
-            "Selecciona exactamente **una provincia** para habilitar la edicion. "
-            "Con varias provincias o sin provincia seleccionada la tabla es solo lectura."
-        )
-        readonly_mode = True
+    # ─── MODO SOLO LECTURA (requiere exactamente 1 provincia) ─
+    readonly_mode = len(prov_sel) != 1
+    prov_unica    = prov_sel[0] if len(prov_sel) == 1 else None
 
-    # ─── PROMEDIO (todos los supermercados, no solo los seleccionados) ───
+    if readonly_mode:
+        st.warning(
+            "Selecciona exactamente **una provincia** para habilitar edicion y marcadores. "
+            "Con varias provincias o sin provincia la tabla es solo lectura."
+        )
+
+    # ─── CARGAR MARCADORES ───────────────────────────────────
+    df_marc = pd.DataFrame()
+    if not readonly_mode:
+        _all_marc = load_marcadores()
+        if not _all_marc.empty:
+            df_marc = _all_marc[
+                (_all_marc["semana"]    == sem_sel) &
+                (_all_marc["provincia"] == prov_unica)
+            ].copy().reset_index(drop=True)
+
+    # ─── PROMEDIO (todos los supermercados) ──────────────────
     idx_cols = ["categoria", "producto", "presentacion"]
-    df_prom = (
+    df_prom  = (
         df_f.groupby(idx_cols, sort=False)["precio"]
-        .mean()
-        .round(2)
-        .reset_index()
+        .mean().round(2).reset_index()
         .rename(columns={"precio": "_prom_"})
     )
 
-    # ─── PIVOT: supermercados seleccionados como columnas ────
+    # ─── PIVOT ───────────────────────────────────────────────
     df_sup_f = df_f[df_f["supermercado"].isin(sup_sel)].copy()
     if df_sup_f.empty:
-        st.info("No hay datos para los supermercados seleccionados con estos filtros.")
+        st.info("No hay datos para los supermercados seleccionados.")
         return
 
-    # Verificar duplicados antes de pivotar
     dup_counts = df_sup_f.groupby(idx_cols + ["supermercado"]).size()
-    dups = dup_counts[dup_counts > 1]
-    if not dups.empty and not readonly_mode:
+    if (dup_counts > 1).any() and not readonly_mode:
+        n_dups = int((dup_counts > 1).sum())
         st.warning(
-            f"Se detectaron {len(dups)} combinaciones duplicadas en la base de datos. "
-            "La tabla esta en modo solo lectura hasta resolver los duplicados."
+            f"Se detectaron {n_dups} combinaciones duplicadas en la base de datos. "
+            "Tabla en modo solo lectura hasta resolver los duplicados."
         )
         readonly_mode = True
+        prov_unica    = None
 
     df_pivot = (
         df_sup_f
-        .pivot_table(
-            index=idx_cols,
-            columns="supermercado",
-            values="precio",
-            aggfunc="first",
-        )
+        .pivot_table(index=idx_cols, columns="supermercado", values="precio", aggfunc="first")
         .reset_index()
     )
     df_pivot.columns.name = None
@@ -116,14 +157,36 @@ def render_edicion_datos():
     sup_cols  = [c for c in df_pivot.columns if c not in idx_cols + ["_prom_"]]
     show_pres = pres_sel == "Todas"
 
-    # df_full conserva presentacion siempre (para lookup al guardar)
-    df_full = df_pivot[idx_cols + sup_cols + ["_prom_"]].copy().reset_index(drop=True)
+    # Columna indicador de marcas
+    df_pivot["_marcas_"] = [
+        _build_marcas_str(df_marc, df_pivot.loc[i, "producto"],
+                          df_pivot.loc[i, "presentacion"], sup_cols)
+        for i in range(len(df_pivot))
+    ]
+
+    # df_full conserva idx_cols siempre (para lookup al guardar y gestionar marcas)
+    df_full = df_pivot[idx_cols + sup_cols + ["_prom_", "_marcas_"]].copy().reset_index(drop=True)
 
     fixed_disp = ["categoria", "producto"] + (["presentacion"] if show_pres else [])
-    all_cols   = fixed_disp + sup_cols + ["_prom_"]
+    all_cols   = fixed_disp + sup_cols + ["_prom_", "_marcas_"]
 
-    df_display  = df_pivot[all_cols].rename(columns={"_prom_": "Promedio"}).reset_index(drop=True)
+    df_display  = (
+        df_pivot[all_cols]
+        .rename(columns={"_prom_": "Promedio", "_marcas_": "🔖 Marcas"})
+        .reset_index(drop=True)
+    )
     df_original = df_display.copy()
+
+    # ─── TOGGLE SOLO MARCADOS ────────────────────────────────
+    solo_marcados = st.checkbox("Mostrar solo productos marcados", value=False, key="ed_solo_marc")
+    if solo_marcados:
+        mask_m      = df_display["🔖 Marcas"].str.len() > 0
+        df_display  = df_display[mask_m].reset_index(drop=True)
+        df_full     = df_full[mask_m].reset_index(drop=True)
+        df_original = df_display.copy()
+        if df_display.empty:
+            st.info("No hay productos marcados con los filtros actuales.")
+            return
 
     # ─── SUBTITULO ───────────────────────────────────────────
     st.divider()
@@ -131,8 +194,7 @@ def render_edicion_datos():
     info_parts = []
     if prov_sel:
         info_parts.append(f"Provincia: {', '.join(prov_sel)}")
-    info_parts.append(f"{len(df_display):,} productos")
-    info_parts.append(f"{len(sup_cols)} supermercado(s)")
+    info_parts += [f"{len(df_display):,} productos", f"{len(sup_cols)} supermercado(s)"]
     st.caption(" · ".join(info_parts))
 
     # ─── COLUMN CONFIG ───────────────────────────────────────
@@ -141,151 +203,209 @@ def render_edicion_datos():
         col_cfg[c] = st.column_config.TextColumn(c.capitalize(), disabled=True)
     for c in sup_cols:
         col_cfg[c] = st.column_config.NumberColumn(c, min_value=0.0, format="RD$ %.2f")
-    col_cfg["Promedio"] = st.column_config.NumberColumn(
-        "Promedio", disabled=True, format="RD$ %.2f"
-    )
+    col_cfg["Promedio"]   = st.column_config.NumberColumn("Promedio",   disabled=True, format="RD$ %.2f")
+    col_cfg["🔖 Marcas"] = st.column_config.TextColumn("🔖 Marcas", disabled=True, width="medium")
 
     # ─── TABLA ───────────────────────────────────────────────
     if readonly_mode:
         st.dataframe(df_display, use_container_width=True, hide_index=True)
-        return
 
-    st.markdown("#### Precios por supermercado — solo las columnas de supermercados son editables")
+    else:
+        st.markdown("#### Precios por supermercado — columnas de supermercados son editables")
+        edited = st.data_editor(
+            df_display,
+            column_config=col_cfg,
+            disabled=fixed_disp + ["Promedio", "🔖 Marcas"],
+            use_container_width=True,
+            hide_index=True,
+            num_rows="fixed",
+            key="editor_precios_perm",
+        )
 
-    edited = st.data_editor(
-        df_display,
-        column_config=col_cfg,
-        disabled=fixed_disp + ["Promedio"],
-        use_container_width=True,
-        hide_index=True,
-        num_rows="fixed",
-        key="editor_precios_perm",
-    )
+        # ── GUARDAR CAMBIOS DE PRECIO ────────────────────────
+        st.divider()
+        st.warning(
+            "⚠️ **Atencion:** Los cambios de precio que guardes aqui son PERMANENTES "
+            "y no se pueden deshacer. Verifica bien antes de confirmar."
+        )
+        confirmar = st.checkbox(
+            "Entiendo que los cambios son permanentes y deseo guardar.",
+            key="ed_confirm",
+        )
+        if st.button("Guardar cambios permanentes", disabled=not confirmar,
+                     use_container_width=True, key="ed_save"):
+            cambios = []
+            advertencias = []
 
-    st.divider()
-    st.warning(
-        "⚠️ **Atencion:** Los cambios que guardes aqui son PERMANENTES "
-        "y no se pueden deshacer. Verifica bien antes de confirmar."
-    )
-    confirmar = st.checkbox(
-        "Entiendo que los cambios son permanentes y deseo guardar.",
-        key="ed_confirm",
-    )
+            for i in range(len(edited)):
+                for sup_col in sup_cols:
+                    new_val = edited.loc[i, sup_col]
+                    old_val = df_original.loc[i, sup_col]
 
-    if not st.button(
-        "Guardar cambios permanentes",
-        disabled=not confirmar,
-        use_container_width=True,
-        key="ed_save",
-    ):
-        return
+                    if pd.isna(new_val) and pd.isna(old_val):
+                        continue
+                    if not pd.isna(new_val) and not pd.isna(old_val):
+                        if round(float(new_val), 4) == round(float(old_val), 4):
+                            continue
 
-    # ─── DETECTAR Y VALIDAR CAMBIOS ──────────────────────────
-    cambios      = []
-    advertencias = []
-    prov_unica   = prov_sel[0]
+                    prod_i = str(df_full.loc[i, "producto"])
+                    pres_i = str(df_full.loc[i, "presentacion"])
+                    cat_i  = str(df_full.loc[i, "categoria"])
 
-    for i in range(len(edited)):
-        for sup_col in sup_cols:
-            new_val = edited.loc[i, sup_col]
-            old_val = df_original.loc[i, sup_col]
+                    if pd.isna(new_val) and not pd.isna(old_val):
+                        advertencias.append(f"**{prod_i}** / {sup_col}: precio borrado no permitido.")
+                        continue
+                    if pd.isna(old_val):
+                        advertencias.append(f"**{prod_i}** / {sup_col}: sin registro original — no se guardara.")
+                        continue
 
-            # Sin cambio
-            if pd.isna(new_val) and pd.isna(old_val):
-                continue
-            if not pd.isna(new_val) and not pd.isna(old_val):
-                if round(float(new_val), 4) == round(float(old_val), 4):
-                    continue
+                    mask = (
+                        (df_f["supermercado"] == sup_col) &
+                        (df_f["producto"]     == prod_i) &
+                        (df_f["presentacion"] == pres_i) &
+                        (df_f["categoria"]    == cat_i) &
+                        (df_f["provincia"]    == prov_unica)
+                    )
+                    matches = df_f[mask]
+                    if len(matches) == 0:
+                        advertencias.append(f"**{prod_i}** / {sup_col}: registro no encontrado en la DB.")
+                        continue
+                    if len(matches) > 1:
+                        advertencias.append(f"**{prod_i}** / {sup_col}: {len(matches)} registros ambiguos.")
+                        continue
 
-            prod_i = str(df_full.loc[i, "producto"])
-            pres_i = str(df_full.loc[i, "presentacion"])
-            cat_i  = str(df_full.loc[i, "categoria"])
+                    rec = matches.iloc[0]
+                    cambios.append({
+                        "semana": str(rec["semana"]), "provincia": str(rec["provincia"]),
+                        "supermercado": str(rec["supermercado"]), "categoria": cat_i,
+                        "producto": prod_i, "presentacion": pres_i,
+                        "id_producto": int(rec["id_producto"]),
+                        "precio_ant": float(old_val), "precio_new": float(new_val),
+                    })
 
-            # Usuario borró un precio — no permitido
-            if pd.isna(new_val) and not pd.isna(old_val):
-                advertencias.append(
-                    f"**{prod_i}** / {sup_col}: se borro el precio. No se permite. Ingresa un valor."
-                )
-                continue
+            for w in advertencias:
+                st.warning(w)
 
-            # Celda nueva sin registro original — no insertar
-            if pd.isna(old_val):
-                advertencias.append(
-                    f"**{prod_i}** / {sup_col}: no existe registro original en la base de datos. No se guardara."
-                )
-                continue
+            if not cambios:
+                st.info("No se detectaron cambios validos para guardar.")
+            else:
+                with get_conn() as con:
+                    for c in cambios:
+                        con.execute(text(
+                            "UPDATE precios SET precio=:precio "
+                            "WHERE semana=:semana AND provincia=:provincia "
+                            "AND supermercado=:supermercado "
+                            "AND id_producto=:id_producto AND presentacion=:presentacion"
+                        ), {
+                            "precio": float(c["precio_new"]),
+                            "semana": c["semana"], "provincia": c["provincia"],
+                            "supermercado": c["supermercado"],
+                            "id_producto": c["id_producto"], "presentacion": c["presentacion"],
+                        })
+                        log_action(
+                            "EDIT_PRICE", "precio",
+                            (f"semana={c['semana']}|provincia={c['provincia']}"
+                             f"|supermercado={c['supermercado']}|categoria={c['categoria']}"
+                             f"|producto={c['producto']}|presentacion={c['presentacion']}"),
+                            f"RD${c['precio_ant']:.2f}", f"RD${c['precio_new']:.2f}",
+                        )
+                st.success(f"{len(cambios)} precio(s) actualizado(s) permanentemente.")
+                if advertencias:
+                    st.info(f"{len(advertencias)} celda(s) no guardadas — revisa las advertencias.")
+                st.rerun()
 
-            # Verificar unicidad del registro en df_f
-            mask = (
-                (df_f["supermercado"] == sup_col) &
-                (df_f["producto"]     == prod_i) &
-                (df_f["presentacion"] == pres_i) &
-                (df_f["categoria"]    == cat_i) &
-                (df_f["provincia"]    == prov_unica)
-            )
-            matches = df_f[mask]
-
-            if len(matches) == 0:
-                advertencias.append(
-                    f"**{prod_i}** / {sup_col}: no se encontro el registro en la base de datos."
-                )
-                continue
-            if len(matches) > 1:
-                advertencias.append(
-                    f"**{prod_i}** / {sup_col}: {len(matches)} registros ambiguos — no se guardara."
-                )
-                continue
-
-            rec = matches.iloc[0]
-            cambios.append({
-                "semana":       str(rec["semana"]),
-                "provincia":    str(rec["provincia"]),
-                "supermercado": str(rec["supermercado"]),
-                "categoria":    cat_i,
-                "producto":     prod_i,
-                "presentacion": pres_i,
-                "id_producto":  int(rec["id_producto"]),
-                "precio_ant":   float(old_val),
-                "precio_new":   float(new_val),
-            })
-
-    for w in advertencias:
-        st.warning(w)
-
-    if not cambios:
-        st.info("No se detectaron cambios validos para guardar.")
-        return
-
-    # ─── GUARDAR ─────────────────────────────────────────────
-    with get_conn() as con:
-        for c in cambios:
-            con.execute(text(
-                "UPDATE precios SET precio=:precio "
-                "WHERE semana=:semana AND provincia=:provincia "
-                "AND supermercado=:supermercado "
-                "AND id_producto=:id_producto AND presentacion=:presentacion"
-            ), {
-                "precio":       float(c["precio_new"]),
-                "semana":       c["semana"],
-                "provincia":    c["provincia"],
-                "supermercado": c["supermercado"],
-                "id_producto":  c["id_producto"],
-                "presentacion": c["presentacion"],
-            })
-            log_action(
-                "EDIT_PRICE", "precio",
-                (
-                    f"semana={c['semana']}|provincia={c['provincia']}"
-                    f"|supermercado={c['supermercado']}"
-                    f"|categoria={c['categoria']}"
-                    f"|producto={c['producto']}"
-                    f"|presentacion={c['presentacion']}"
-                ),
-                f"RD${c['precio_ant']:.2f}",
-                f"RD${c['precio_new']:.2f}",
+    # ─── GESTIONAR MARCADORES ────────────────────────────────
+    if not readonly_mode:
+        st.divider()
+        with st.expander("🔖 Gestionar marcadores", expanded=False):
+            st.caption(
+                "Marca precios especificos para destacarlos aqui y en Comparativa de Precios. "
+                "Los marcadores se guardan en Supabase y persisten al recargar."
             )
 
-    st.success(f"{len(cambios)} precio(s) actualizado(s) permanentemente.")
-    if advertencias:
-        st.info(f"{len(advertencias)} celda(s) no guardadas — revisa las advertencias de arriba.")
-    st.rerun()
+            prods_m   = sorted(df_full["producto"].unique())
+            gm1, gm2, gm3 = st.columns(3)
+
+            prod_m = gm1.selectbox("Producto", prods_m, key="ed_m_prod")
+
+            pres_m_opts = sorted(df_full[df_full["producto"] == prod_m]["presentacion"].unique())
+            pres_m = gm2.selectbox("Presentacion", pres_m_opts, key="ed_m_pres") if pres_m_opts else None
+
+            sup_m = gm3.selectbox("Supermercado", sup_sel, key="ed_m_sup")
+
+            # Categoria del producto seleccionado
+            cat_row_m = df_full[df_full["producto"] == prod_m]
+            cat_m = str(cat_row_m.iloc[0]["categoria"]) if not cat_row_m.empty else ""
+
+            gm4, gm5 = st.columns(2)
+            color_label = gm4.selectbox("Color / tipo de marca", list(_COLORES.keys()), key="ed_m_color")
+            color_hex   = _COLORES[color_label]
+            nota_m      = gm5.text_input("Nota opcional (max 100 caracteres)", max_chars=100, key="ed_m_nota")
+
+            col_mk, col_umk = st.columns(2)
+            if col_mk.button("Marcar", use_container_width=True, key="ed_m_mark"):
+                if prod_m and pres_m and sup_m:
+                    save_marcador(sem_sel, prov_unica, sup_m, cat_m, prod_m, pres_m,
+                                  color=color_hex, nota=nota_m.strip())
+                    log_action(
+                        "MARK_PRICE", "marcador",
+                        (f"semana={sem_sel}|provincia={prov_unica}|supermercado={sup_m}"
+                         f"|producto={prod_m}|presentacion={pres_m}|color={color_hex}"),
+                        "", nota_m.strip(),
+                    )
+                    st.success(f"Marcado: {prod_m} — {sup_m}")
+                    st.rerun()
+
+            if col_umk.button("Desmarcar", use_container_width=True, key="ed_m_unmark"):
+                if prod_m and pres_m and sup_m:
+                    delete_marcador(sem_sel, prov_unica, sup_m, cat_m, prod_m, pres_m)
+                    log_action(
+                        "UNMARK_PRICE", "marcador",
+                        (f"semana={sem_sel}|provincia={prov_unica}|supermercado={sup_m}"
+                         f"|producto={prod_m}|presentacion={pres_m}"),
+                        "", "",
+                    )
+                    st.success(f"Desmarcado: {prod_m} — {sup_m}")
+                    st.rerun()
+
+            # ── Lista de marcas activas para este filtro ─────
+            st.divider()
+            if df_marc.empty:
+                st.caption("No hay marcas activas para esta semana y provincia.")
+            else:
+                st.caption(f"{len(df_marc)} marca(s) activa(s) para {fmt_sem(sem_sel, 'corta')} · {prov_unica}")
+                for row_idx, row_m in df_marc.iterrows():
+                    emoji   = _EMOJI.get(row_m.get("color", ""), "●")
+                    prod_r  = row_m.get("producto", "")
+                    pres_r  = row_m.get("presentacion", "")
+                    sup_r   = row_m.get("supermercado", "")
+                    nota_r  = str(row_m.get("nota", "") or "")
+                    user_r  = row_m.get("username", "")
+                    ts_r    = row_m.get("created_at", "")
+
+                    col_card, col_del = st.columns([6, 1])
+                    with col_card:
+                        st.markdown(
+                            f"<div style='padding:.4rem .75rem;border:1px solid rgba(148,163,184,0.12);"
+                            f"border-radius:8px;background:rgba(15,23,42,0.5);"
+                            f"display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;'>"
+                            f"<span style='font-size:1.1rem;'>{emoji}</span>"
+                            f"<span style='color:#F8FAFC;font-size:.82rem;font-weight:600;'>{prod_r}</span>"
+                            f"<span style='color:#94A3B8;font-size:.78rem;'>{pres_r}</span>"
+                            f"<span style='color:#3B82F6;font-size:.78rem;font-weight:600;'>{sup_r}</span>"
+                            + (f"<span style='color:#CBD5E1;font-size:.75rem;font-style:italic;'>\"{nota_r}\"</span>" if nota_r else "")
+                            + f"<span style='color:#475569;font-size:.72rem;margin-left:auto;'>{user_r} · {ts_r}</span>"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+                    with col_del:
+                        if st.button("✕", key=f"del_marc_{row_idx}", help="Desmarcar este precio"):
+                            cat_r = str(row_m.get("categoria", ""))
+                            delete_marcador(sem_sel, prov_unica, sup_r, cat_r, prod_r, pres_r)
+                            log_action(
+                                "UNMARK_PRICE", "marcador",
+                                f"semana={sem_sel}|provincia={prov_unica}|supermercado={sup_r}"
+                                f"|producto={prod_r}|presentacion={pres_r}",
+                                "", "",
+                            )
+                            st.rerun()

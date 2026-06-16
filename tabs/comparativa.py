@@ -8,6 +8,15 @@ from styles.theme import (
 from utils.formatting import fmt_rdp, fmt_pct
 from utils.transformations import cruzar_semanas, normalizar_categoria, preparar_productos_con_cambio
 from components.charts import apply_dark_layout
+from data.database import load_marcadores
+
+_EMOJI_MARC = {
+    "#F59E0B": "🟡",
+    "#EF4444": "🔴",
+    "#22C55E": "🟢",
+    "#3B82F6": "🔵",
+    "#F97316": "🟠",
+}
 
 
 def render_comparativa(ctx):
@@ -30,12 +39,36 @@ def render_comparativa(ctx):
         st.warning("No hay productos en comun entre las dos semanas.")
         return
 
+    # ── Cargar marcadores para la semana actual ──────────────
+    _marc_lookup = {}
+    try:
+        _all_marc = load_marcadores()
+        if not _all_marc.empty and ctx.semana_actual:
+            _dm = _all_marc[_all_marc["semana"] == ctx.semana_actual]
+            for _, _mr in _dm.iterrows():
+                _key = (str(_mr["provincia"]), str(_mr["supermercado"]),
+                        str(_mr["producto"]), str(_mr["presentacion"]))
+                _emoji = _EMOJI_MARC.get(str(_mr.get("color", "")), "●")
+                _nota  = str(_mr.get("nota", "") or "")
+                _marc_lookup[_key] = f"{_emoji} {_nota[:15]}" if _nota else _emoji
+    except Exception:
+        pass
+
+    merged["_marca_"] = merged.apply(
+        lambda r: _marc_lookup.get(
+            (str(r["provincia"]), str(r["supermercado"]),
+             str(r["producto"]), str(r["presentacion"])), ""
+        ), axis=1
+    )
+
     display = merged[[
+        "_marca_",
         "categoria", "producto", "presentacion",
         "provincia", "supermercado",
         "precio_comp", "precio_actual", "Variacion RD$", "Variacion %"
     ]].copy()
     display.columns = [
+        "🔖",
         "Categoria", "Producto", "Presentacion", "Provincia", "Supermercado",
         f"Precio {sc_lbl}", f"Precio {sa_lbl}",
         "Variacion RD$", "Variacion %"

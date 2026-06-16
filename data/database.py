@@ -160,6 +160,23 @@ def init_db():
                 valor_nuevo TEXT
             )
         """))
+        con.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS precio_marcadores (
+                id           {serial} PRIMARY KEY,
+                semana       TEXT,
+                provincia    TEXT,
+                supermercado TEXT,
+                categoria    TEXT,
+                producto     TEXT,
+                presentacion TEXT,
+                color        TEXT DEFAULT '#F59E0B',
+                nota         TEXT,
+                username     TEXT,
+                activo       INTEGER DEFAULT 1,
+                created_at   TEXT,
+                updated_at   TEXT
+            )
+        """))
 
 
 # ------------------------------------------------------------
@@ -426,5 +443,63 @@ def load_audit_log(limit=500):
             get_engine(),
         )
         return df
+    except Exception:
+        return pd.DataFrame()
+
+
+# ------------------------------------------------------------
+# MARCADORES
+# ------------------------------------------------------------
+def save_marcador(semana, provincia, supermercado, categoria, producto, presentacion,
+                  color="#F59E0B", nota=""):
+    username = "sistema"
+    try:
+        username = st.session_state.get("username", "sistema") or "sistema"
+    except Exception:
+        pass
+    now = datetime.now(_AST).strftime("%d/%m/%Y %I:%M:%S %p")
+    try:
+        with get_conn() as con:
+            con.execute(text("""
+                DELETE FROM precio_marcadores
+                WHERE semana=:s AND provincia=:p AND supermercado=:sup
+                AND categoria=:cat AND producto=:prod AND presentacion=:pres
+            """), {"s": semana, "p": provincia, "sup": supermercado,
+                   "cat": categoria, "prod": producto, "pres": presentacion})
+            con.execute(text("""
+                INSERT INTO precio_marcadores
+                    (semana, provincia, supermercado, categoria, producto, presentacion,
+                     color, nota, username, activo, created_at, updated_at)
+                VALUES
+                    (:s, :p, :sup, :cat, :prod, :pres,
+                     :color, :nota, :username, 1, :ts, :ts)
+            """), {
+                "s": semana, "p": provincia, "sup": supermercado,
+                "cat": categoria, "prod": producto, "pres": presentacion,
+                "color": color, "nota": nota or "", "username": username, "ts": now,
+            })
+    except Exception:
+        pass
+
+
+def delete_marcador(semana, provincia, supermercado, categoria, producto, presentacion):
+    try:
+        with get_conn() as con:
+            con.execute(text("""
+                DELETE FROM precio_marcadores
+                WHERE semana=:s AND provincia=:p AND supermercado=:sup
+                AND categoria=:cat AND producto=:prod AND presentacion=:pres
+            """), {"s": semana, "p": provincia, "sup": supermercado,
+                   "cat": categoria, "prod": producto, "pres": presentacion})
+    except Exception:
+        pass
+
+
+def load_marcadores():
+    try:
+        return pd.read_sql(
+            "SELECT * FROM precio_marcadores WHERE activo=1 ORDER BY created_at DESC",
+            get_engine(),
+        )
     except Exception:
         return pd.DataFrame()
