@@ -113,10 +113,12 @@ def render_edicion_datos():
                     "WHERE semana=:semana AND provincia=:provincia AND supermercado=:supermercado "
                     "AND id_producto=:id_producto AND presentacion=:presentacion"
                 ), {
-                    "precio": new_price,
-                    "semana": pk["semana"], "provincia": pk["provincia"],
-                    "supermercado": pk["supermercado"], "id_producto": pk["id_producto"],
-                    "presentacion": pk["presentacion"],
+                    "precio":        float(new_price),
+                    "semana":        str(pk["semana"]),
+                    "provincia":     str(pk["provincia"]),
+                    "supermercado":  str(pk["supermercado"]),
+                    "id_producto":   int(pk["id_producto"]),
+                    "presentacion":  str(pk["presentacion"]),
                 })
                 log_action(
                     "EDIT_PRICE", "precio",
