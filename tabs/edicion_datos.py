@@ -5,6 +5,7 @@ from sqlalchemy import text
 from data.database import (
     load_all, get_conn, DEMO_MODE, log_action,
     save_marcador, delete_marcador, load_marcadores,
+    is_postgres,
 )
 from utils.dates import fmt_sem
 
@@ -308,8 +309,29 @@ def render_edicion_datos():
                     if pd.isna(new_val) and not pd.isna(old_val):
                         advertencias.append(f"**{prod_i}** / {sup_col}: precio borrado no permitido.")
                         continue
+
                     if pd.isna(old_val):
-                        advertencias.append(f"**{prod_i}** / {sup_col}: sin registro original — no se guardara.")
+                        # Celda vacía → intentar INSERT si el nuevo valor es válido
+                        if pd.isna(new_val) or float(new_val) <= 0:
+                            continue
+                        id_match = df_f[
+                            (df_f["producto"]     == prod_i) &
+                            (df_f["presentacion"] == pres_i) &
+                            (df_f["categoria"]    == cat_i)
+                        ]["id_producto"]
+                        if id_match.empty:
+                            advertencias.append(
+                                f"**{prod_i}** / {sup_col}: no se pudo determinar el ID del producto."
+                            )
+                            continue
+                        cambios.append({
+                            "semana": sem_sel, "provincia": prov_unica,
+                            "supermercado": sup_col, "categoria": cat_i,
+                            "producto": prod_i, "presentacion": pres_i,
+                            "id_producto": int(id_match.iloc[0]),
+                            "precio_ant": None, "precio_new": float(new_val),
+                            "es_insert": True,
+                        })
                         continue
 
                     mask = (
@@ -334,6 +356,7 @@ def render_edicion_datos():
                         "producto": prod_i, "presentacion": pres_i,
                         "id_producto": int(rec["id_producto"]),
                         "precio_ant": float(old_val), "precio_new": float(new_val),
+                        "es_insert": False,
                     })
 
             for w in advertencias:
@@ -342,27 +365,67 @@ def render_edicion_datos():
             if not cambios:
                 st.info("No se detectaron cambios validos para guardar.")
             else:
+                pg = is_postgres()
                 with get_conn() as con:
                     for c in cambios:
-                        con.execute(text(
-                            "UPDATE precios SET precio=:precio "
-                            "WHERE semana=:semana AND provincia=:provincia "
-                            "AND supermercado=:supermercado "
-                            "AND id_producto=:id_producto AND presentacion=:presentacion"
-                        ), {
-                            "precio": float(c["precio_new"]),
-                            "semana": c["semana"], "provincia": c["provincia"],
-                            "supermercado": c["supermercado"],
-                            "id_producto": c["id_producto"], "presentacion": c["presentacion"],
-                        })
+                        if c.get("es_insert"):
+                            if pg:
+                                con.execute(text("""
+                                    INSERT INTO precios
+                                        (semana, provincia, supermercado, categoria,
+                                         id_producto, producto, presentacion, precio, fuente)
+                                    VALUES (:semana, :provincia, :supermercado, :categoria,
+                                            :id_producto, :producto, :presentacion, :precio, 'bruto')
+                                    ON CONFLICT (semana, provincia, supermercado, id_producto, presentacion)
+                                    DO UPDATE SET precio = EXCLUDED.precio, fuente = EXCLUDED.fuente
+                                """), {
+                                    "semana": c["semana"], "provincia": c["provincia"],
+                                    "supermercado": c["supermercado"], "categoria": c["categoria"],
+                                    "id_producto": c["id_producto"], "producto": c["producto"],
+                                    "presentacion": c["presentacion"], "precio": float(c["precio_new"]),
+                                })
+                            else:
+                                con.execute(text("""
+                                    INSERT OR REPLACE INTO precios
+                                        (semana, provincia, supermercado, categoria,
+                                         id_producto, producto, presentacion, precio, fuente)
+                                    VALUES (:semana, :provincia, :supermercado, :categoria,
+                                            :id_producto, :producto, :presentacion, :precio, 'bruto')
+                                """), {
+                                    "semana": c["semana"], "provincia": c["provincia"],
+                                    "supermercado": c["supermercado"], "categoria": c["categoria"],
+                                    "id_producto": c["id_producto"], "producto": c["producto"],
+                                    "presentacion": c["presentacion"], "precio": float(c["precio_new"]),
+                                })
+                        else:
+                            con.execute(text(
+                                "UPDATE precios SET precio=:precio "
+                                "WHERE semana=:semana AND provincia=:provincia "
+                                "AND supermercado=:supermercado "
+                                "AND id_producto=:id_producto AND presentacion=:presentacion"
+                            ), {
+                                "precio": float(c["precio_new"]),
+                                "semana": c["semana"], "provincia": c["provincia"],
+                                "supermercado": c["supermercado"],
+                                "id_producto": c["id_producto"], "presentacion": c["presentacion"],
+                            })
+
+                        ant_str = f"RD${c['precio_ant']:.2f}" if c["precio_ant"] is not None else "(precio nuevo)"
                         log_action(
                             "EDIT_PRICE", "precio",
                             (f"semana={c['semana']}|provincia={c['provincia']}"
                              f"|supermercado={c['supermercado']}|categoria={c['categoria']}"
                              f"|producto={c['producto']}|presentacion={c['presentacion']}"),
-                            f"RD${c['precio_ant']:.2f}", f"RD${c['precio_new']:.2f}",
+                            ant_str, f"RD${c['precio_new']:.2f}",
                         )
-                st.success(f"{len(cambios)} precio(s) actualizado(s) permanentemente.")
+                n_insert = sum(1 for c in cambios if c.get("es_insert"))
+                n_update = len(cambios) - n_insert
+                partes = []
+                if n_update:
+                    partes.append(f"{n_update} actualizado(s)")
+                if n_insert:
+                    partes.append(f"{n_insert} insertado(s) nuevo(s)")
+                st.success(f"{' · '.join(partes)} permanentemente.")
                 if advertencias:
                     st.info(f"{len(advertencias)} celda(s) no guardadas — revisa las advertencias.")
                 st.rerun()

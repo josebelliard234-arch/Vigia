@@ -63,6 +63,10 @@ def _is_postgres():
     return _get_db_url() is not None
 
 
+def is_postgres():
+    return _is_postgres()
+
+
 @st.cache_resource
 def _get_engine():
     url = _get_db_url()
