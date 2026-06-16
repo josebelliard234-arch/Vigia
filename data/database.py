@@ -2,7 +2,9 @@ import os
 import re
 import sqlite3
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_AST = timezone(timedelta(hours=-4))
 from sqlalchemy import create_engine, text
 import streamlit as st
 
@@ -339,7 +341,7 @@ def registrar_monitoreo_cargado(semana, nombre_archivo, registros):
         con.execute(sql, {
             "semana": semana,
             "nombre_archivo": nombre_archivo,
-            "fecha_carga": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
+            "fecha_carga": datetime.now(_AST).strftime("%d/%m/%Y %I:%M %p"),
             "registros": int(registros),
         })
 
@@ -404,7 +406,7 @@ def log_action(accion, entidad="", detalle="", valor_ant="", valor_nuevo=""):
                     (timestamp, usuario, rol, accion, entidad, detalle, valor_ant, valor_nuevo)
                 VALUES (:ts, :usuario, :rol, :accion, :entidad, :detalle, :valor_ant, :valor_nuevo)
             """), {
-                "ts":          datetime.now().strftime("%d/%m/%Y %I:%M:%S %p"),
+                "ts":          datetime.now(_AST).strftime("%d/%m/%Y %I:%M:%S %p"),
                 "usuario":     usuario,
                 "rol":         rol,
                 "accion":      accion,
