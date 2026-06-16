@@ -145,6 +145,19 @@ def init_db():
                 salt           TEXT
             )
         """))
+        con.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id          {serial} PRIMARY KEY,
+                timestamp   TEXT,
+                usuario     TEXT,
+                rol         TEXT,
+                accion      TEXT,
+                entidad     TEXT,
+                detalle     TEXT,
+                valor_ant   TEXT,
+                valor_nuevo TEXT
+            )
+        """))
 
 
 # ------------------------------------------------------------
@@ -371,3 +384,45 @@ def wipe_db(que="todo"):
             con.execute(text("DELETE FROM precios_supermercado"))
             con.execute(text("DELETE FROM productos_clave"))
     return antes
+
+
+# ------------------------------------------------------------
+# AUDITORIA
+# ------------------------------------------------------------
+def log_action(accion, entidad="", detalle="", valor_ant="", valor_nuevo=""):
+    usuario = "sistema"
+    rol = ""
+    try:
+        usuario = st.session_state.get("username", "sistema") or "sistema"
+        rol     = st.session_state.get("rol", "") or ""
+    except Exception:
+        pass
+    try:
+        with get_conn() as con:
+            con.execute(text("""
+                INSERT INTO audit_log
+                    (timestamp, usuario, rol, accion, entidad, detalle, valor_ant, valor_nuevo)
+                VALUES (:ts, :usuario, :rol, :accion, :entidad, :detalle, :valor_ant, :valor_nuevo)
+            """), {
+                "ts":          datetime.now().strftime("%d/%m/%Y %I:%M:%S %p"),
+                "usuario":     usuario,
+                "rol":         rol,
+                "accion":      accion,
+                "entidad":     entidad,
+                "detalle":     detalle,
+                "valor_ant":   valor_ant,
+                "valor_nuevo": valor_nuevo,
+            })
+    except Exception:
+        pass
+
+
+def load_audit_log(limit=500):
+    try:
+        df = pd.read_sql(
+            f"SELECT * FROM audit_log ORDER BY id DESC LIMIT {limit}",
+            get_engine(),
+        )
+        return df
+    except Exception:
+        return pd.DataFrame()

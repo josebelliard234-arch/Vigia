@@ -5,7 +5,7 @@ import streamlit as st
 from datetime import datetime
 from sqlalchemy import text
 
-from data.database import get_conn, get_engine, _is_postgres
+from data.database import get_conn, get_engine, _is_postgres, log_action
 
 
 # ============================================================
@@ -97,6 +97,7 @@ def create_user(username: str, password: str, rol: str,
             "rol": rol, "fecha": now,
             "username": username, "ph": ph, "salt": salt,
         })
+    log_action("CREATE_USER", "usuario", f"username={username}", "", f"rol={rol}")
     return True
 
 
@@ -104,6 +105,10 @@ def update_user_auth(uid: int, nombre: str, email: str, rol: str,
                      activo: bool, new_password: str = None):
     """Actualiza datos de usuario. Si new_password se pasa, tambien cambia la contrasena."""
     with get_conn() as con:
+        row = con.execute(text("SELECT username, rol, activo FROM usuarios WHERE id=:uid"), {"uid": uid}).fetchone()
+        uname_prev = row[0] if row else str(uid)
+        rol_prev   = row[1] if row else ""
+        activo_prev = row[2] if row else None
         if new_password and new_password.strip():
             ph, salt = hash_password(new_password.strip())
             con.execute(text("""
@@ -125,11 +130,24 @@ def update_user_auth(uid: int, nombre: str, email: str, rol: str,
                 "nombre": nombre.strip(), "email": email.strip(),
                 "rol": rol, "activo": int(activo), "uid": uid,
             })
+    cambios = []
+    if rol_prev != rol:
+        cambios.append(f"rol: {rol_prev}→{rol}")
+    if activo_prev is not None and int(activo_prev) != int(activo):
+        cambios.append(f"activo: {bool(activo_prev)}→{activo}")
+    if new_password and new_password.strip():
+        cambios.append("password cambiado")
+    if cambios:
+        log_action("UPDATE_USER", "usuario", f"username={uname_prev}", "", " | ".join(cambios))
 
 
 def delete_user(uid: int):
     with get_conn() as con:
+        row = con.execute(text("SELECT username, rol FROM usuarios WHERE id=:uid"), {"uid": uid}).fetchone()
+        uname = row[0] if row else str(uid)
+        rol_u = row[1] if row else ""
         con.execute(text("DELETE FROM usuarios WHERE id=:uid"), {"uid": uid})
+    log_action("DELETE_USER", "usuario", f"username={uname}", f"rol={rol_u}", "")
 
 
 def load_users_safe() -> pd.DataFrame:
@@ -164,7 +182,9 @@ def verify_login(username: str, password: str):
     if not ph or not salt:
         return None
     if verify_password(password, ph, salt):
+        log_action("LOGIN", "sesion", f"username={uname}", "", "")
         return {"id": uid, "username": uname, "rol": rol, "nombre": nombre}
+    log_action("LOGIN_FAIL", "sesion", f"username={username}", "", "")
     return None
 
 
@@ -186,6 +206,7 @@ def require_role(rol_requerido: str):
 
 
 def logout():
+    log_action("LOGOUT", "sesion", "", "", "")
     for key in ("authenticated", "username", "rol", "user_id", "nombre"):
         st.session_state.pop(key, None)
     st.rerun()

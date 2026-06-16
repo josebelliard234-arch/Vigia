@@ -42,7 +42,7 @@ from data.database import (
     semanas_en_db, count_validados, semanas_validadas,
     count_supermercado, count_productos_clave,
     registrar_monitoreo_cargado, load_monitoreos_cargados,
-    eliminar_monitoreo_cargado, wipe_db,
+    eliminar_monitoreo_cargado, wipe_db, log_action,
 )
 from data.loader import (
     parse_excel_bruto, parse_historial_validado,
@@ -68,6 +68,7 @@ from tabs.archivos_cargados import render_archivos_cargados
 from tabs.edicion_datos    import render_edicion_datos
 from tabs.simulacion       import render_simulacion
 from tabs.alertas          import render_alertas
+from tabs.auditoria        import render_auditoria
 
 from auth.auth import (
     init_auth_db, require_login, render_sidebar_user,
@@ -114,11 +115,12 @@ with st.sidebar:
             "Archivos Cargados",
             "Edicion de Datos",
             "Administracion de Usuarios",
+            "Auditoria",
         ]
         _nav_icons = [
             "bar-chart-line", "graph-up-arrow", "shop", "stars",
             "exclamation-triangle", "bell", "folder2-open",
-            "pencil-square", "people",
+            "pencil-square", "people", "shield-check",
         ]
     else:
         _nav_options = [
@@ -222,6 +224,7 @@ with st.sidebar:
                             )
                         save_to_db(df_preview, fuente="bruto")
                         registrar_monitoreo_cargado(sem_final, f.name, len(df_preview))
+                        log_action("UPLOAD", "monitoreo", f"{f.name} · semana={sem_final} · {len(df_preview):,} registros")
                         st.success(f"Importado: {len(df_preview):,} registros")
                         st.rerun()
                 elif df_preview.empty:
@@ -249,6 +252,7 @@ with st.sidebar:
                 if st.button(f"Eliminar {semana_m}", key=f"del_monit_{semana_m}",
                              disabled=DEMO_MODE):
                     eliminar_monitoreo_cargado(semana_m)
+                    log_action("DELETE", "monitoreo", f"semana={semana_m} · {nombre_m}")
                     st.rerun()
 
         st.divider()
@@ -299,6 +303,7 @@ with st.sidebar:
                         save_supermercado_to_db(df_sup_prev)
                     if not df_clave_prev.empty:
                         save_productos_clave_to_db(df_clave_prev)
+                    log_action("UPLOAD", "historial", f"{uploaded_hist.name} · {len(df_hist_prev):,} registros validados")
                     st.success("Historial importado correctamente")
                     st.rerun()
             else:
@@ -330,6 +335,8 @@ with st.sidebar:
             if st.button("Borrar ahora", key="wipe_btn",
                          disabled=(not confirmar_wipe or DEMO_MODE)):
                 antes = wipe_db(que_borrar)
+                log_action("WIPE", "db", f"tipo={que_borrar}",
+                           f"precios={antes['precios']:,} | sup={antes['precios_supermercado']:,} | clave={antes['productos_clave']:,}", "")
                 st.success(
                     f"Base de datos limpiada. Eliminados → "
                     f"precios: {antes['precios']:,} | "
@@ -579,6 +586,12 @@ elif section == "Edicion de Datos":
 
 elif section in ("Administracion de Usuarios", "Administración de Usuarios"):
     render_usuarios()
+
+elif section == "Auditoria":
+    if not _es_admin:
+        st.warning("No tienes permiso para acceder a esta seccion.")
+    else:
+        render_auditoria()
 
 # --- Tab solo Viewer ---
 elif section == "Simulacion Temporal":

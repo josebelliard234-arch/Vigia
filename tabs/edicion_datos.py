@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
+from sqlalchemy import text
 
-from data.database import load_all, get_conn, DEMO_MODE
+from data.database import load_all, get_conn, DEMO_MODE, log_action
 
 
 def render_edicion_datos():
@@ -38,7 +39,6 @@ def render_edicion_datos():
     prods = ["Todos"] + sorted(df_f["producto"].dropna().unique())
     prod_sel = fd2.selectbox("Producto", prods, key="ed_prod")
 
-    # Aplicar filtros
     if prov_sel:
         df_f = df_f[df_f["provincia"].isin(prov_sel)]
     else:
@@ -58,7 +58,6 @@ def render_edicion_datos():
         st.info("No hay registros con estos filtros.")
         return
 
-    # Guardar PK antes de mostrar editor
     pk_cols = ["semana", "provincia", "supermercado", "id_producto", "presentacion"]
     df_pks = df_f[pk_cols].copy().reset_index(drop=True)
 
@@ -95,7 +94,6 @@ def render_edicion_datos():
     )
 
     if st.button("Guardar cambios permanentes", disabled=not confirmar, use_container_width=True, key="ed_save"):
-        # Detectar filas con precio cambiado
         try:
             diff = edited["precio"].compare(df_edit_base["precio"])
         except Exception:
@@ -108,15 +106,23 @@ def render_edicion_datos():
         with get_conn() as con:
             for idx in diff.index:
                 new_price = edited.loc[idx, "precio"]
+                old_price = df_edit_base.loc[idx, "precio"]
                 pk = df_pks.loc[idx]
-                con.execute(
-                    "UPDATE precios SET precio=? "
-                    "WHERE semana=? AND provincia=? AND supermercado=? "
-                    "AND id_producto=? AND presentacion=?",
-                    (new_price, pk["semana"], pk["provincia"], pk["supermercado"],
-                     pk["id_producto"], pk["presentacion"]),
+                con.execute(text(
+                    "UPDATE precios SET precio=:precio "
+                    "WHERE semana=:semana AND provincia=:provincia AND supermercado=:supermercado "
+                    "AND id_producto=:id_producto AND presentacion=:presentacion"
+                ), {
+                    "precio": new_price,
+                    "semana": pk["semana"], "provincia": pk["provincia"],
+                    "supermercado": pk["supermercado"], "id_producto": pk["id_producto"],
+                    "presentacion": pk["presentacion"],
+                })
+                log_action(
+                    "EDIT_PRICE", "precio",
+                    f"{df_edit_base.loc[idx, 'producto']} · {df_edit_base.loc[idx, 'presentacion']} · {pk['supermercado']} · {pk['semana']}",
+                    f"RD${old_price:.2f}", f"RD${new_price:.2f}",
                 )
-            con.commit()
 
         st.success(f"{len(diff)} precio(s) actualizado(s) permanentemente.")
         st.rerun()
