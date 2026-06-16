@@ -120,7 +120,13 @@ def render_edicion_datos():
                 })
                 log_action(
                     "EDIT_PRICE", "precio",
-                    f"{df_edit_base.loc[idx, 'producto']} · {df_edit_base.loc[idx, 'presentacion']} · {pk['supermercado']} · {pk['semana']}",
+                    (
+                        f"semana={pk['semana']}|provincia={pk['provincia']}"
+                        f"|supermercado={pk['supermercado']}"
+                        f"|categoria={df_edit_base.loc[idx, 'categoria']}"
+                        f"|producto={df_edit_base.loc[idx, 'producto']}"
+                        f"|presentacion={df_edit_base.loc[idx, 'presentacion']}"
+                    ),
                     f"RD${old_price:.2f}", f"RD${new_price:.2f}",
                 )
 
