@@ -30,23 +30,23 @@ def render_edicion_datos():
     cat_sel = fc2.selectbox("Categoria", cats, key="ed_cat")
 
     provincias = sorted(df_f["provincia"].dropna().unique())
-    prov_sel = fc3.multiselect("Provincia", provincias, default=provincias, key="ed_prov")
+    prov_sel = fc3.multiselect("Provincia", provincias, default=[], key="ed_prov")
 
     fd1, fd2 = st.columns(2)
     sups = sorted(df_f["supermercado"].dropna().unique())
-    sup_sel = fd1.multiselect("Supermercado", sups, default=sups, key="ed_sup")
+    sup_sel = fd1.multiselect("Supermercado", sups, default=[], key="ed_sup")
 
     prods = ["Todos"] + sorted(df_f["producto"].dropna().unique())
     prod_sel = fd2.selectbox("Producto", prods, key="ed_prod")
 
+    if not sup_sel:
+        st.info("Selecciona uno o mas supermercados para cargar la tabla de edicion.")
+        return
+
     if prov_sel:
         df_f = df_f[df_f["provincia"].isin(prov_sel)]
-    else:
-        df_f = df_f.iloc[0:0]
     if sup_sel:
         df_f = df_f[df_f["supermercado"].isin(sup_sel)]
-    else:
-        df_f = df_f.iloc[0:0]
     if cat_sel != "Todas":
         df_f = df_f[df_f["categoria"] == cat_sel]
     if prod_sel != "Todos":
