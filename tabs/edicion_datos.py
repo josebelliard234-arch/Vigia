@@ -24,9 +24,32 @@ _EMOJI = {
     "#F97316": "🟠",
 }
 
+# CSS inyectado cuando el modo ampliado está activo
+_CSS_AMPLIADO = """
+<style>
+/* Ocultar sidebar completo */
+section[data-testid="stSidebar"] {
+    display: none !important;
+    width: 0px !important;
+    min-width: 0px !important;
+}
+/* Ocultar el toggle de colapsar sidebar */
+[data-testid="collapsedControl"] {
+    display: none !important;
+}
+/* Expandir el area principal al 100% */
+.main .block-container {
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0.4rem !important;
+}
+</style>
+"""
+
 
 def _build_marcas_str(df_marc, producto, presentacion, sup_cols):
-    """Retorna un string con los emojis + supermercados marcados para una fila del pivot."""
+    """Retorna string con emojis + supermercados marcados para una fila del pivot."""
     if df_marc.empty:
         return ""
     parts = []
@@ -43,9 +66,18 @@ def _build_marcas_str(df_marc, producto, presentacion, sup_cols):
     return " · ".join(parts)
 
 
+def _table_height(n_rows: int, ampliado: bool) -> int:
+    """Altura dinamica del data_editor segun numero de filas y modo."""
+    px_por_fila = 35
+    px_header   = 42
+    calculado   = n_rows * px_por_fila + px_header
+    if ampliado:
+        return max(620, min(calculado, 860))
+    return max(380, min(calculado, 520))
+
+
 def render_edicion_datos():
     st.subheader("Edicion de Datos")
-    st.caption("Modifica precios de forma permanente en la base de datos.")
 
     if DEMO_MODE:
         st.warning("Modo demo activo. No se pueden guardar cambios permanentes.")
@@ -157,14 +189,12 @@ def render_edicion_datos():
     sup_cols  = [c for c in df_pivot.columns if c not in idx_cols + ["_prom_"]]
     show_pres = pres_sel == "Todas"
 
-    # Columna indicador de marcas
     df_pivot["_marcas_"] = [
         _build_marcas_str(df_marc, df_pivot.loc[i, "producto"],
                           df_pivot.loc[i, "presentacion"], sup_cols)
         for i in range(len(df_pivot))
     ]
 
-    # df_full conserva idx_cols siempre (para lookup al guardar y gestionar marcas)
     df_full = df_pivot[idx_cols + sup_cols + ["_prom_", "_marcas_"]].copy().reset_index(drop=True)
 
     fixed_disp = ["categoria", "producto"] + (["presentacion"] if show_pres else [])
@@ -177,8 +207,23 @@ def render_edicion_datos():
     )
     df_original = df_display.copy()
 
-    # ─── TOGGLE SOLO MARCADOS ────────────────────────────────
-    solo_marcados = st.checkbox("Mostrar solo productos marcados", value=False, key="ed_solo_marc")
+    # ─── CONTROLES DE VISTA ──────────────────────────────────
+    cv1, cv2 = st.columns([3, 1])
+    with cv1:
+        solo_marcados = st.checkbox(
+            "Mostrar solo productos marcados", value=False, key="ed_solo_marc"
+        )
+    with cv2:
+        modo_ampliado = st.checkbox(
+            "⛶ Modo ampliado", value=False, key="ed_ampliado",
+            help="Oculta el sidebar y agranda la tabla para trabajar mas comodo.",
+        )
+
+    # Inyectar CSS si modo ampliado esta activo
+    if modo_ampliado:
+        st.markdown(_CSS_AMPLIADO, unsafe_allow_html=True)
+
+    # Aplicar filtro solo marcados
     if solo_marcados:
         mask_m      = df_display["🔖 Marcas"].str.len() > 0
         df_display  = df_display[mask_m].reset_index(drop=True)
@@ -190,12 +235,11 @@ def render_edicion_datos():
 
     # ─── SUBTITULO ───────────────────────────────────────────
     st.divider()
-    st.markdown(f"**Semana:** {fmt_sem(sem_sel, 'larga')}")
-    info_parts = []
+    info_parts = [f"**{fmt_sem(sem_sel, 'larga')}**"]
     if prov_sel:
         info_parts.append(f"Provincia: {', '.join(prov_sel)}")
     info_parts += [f"{len(df_display):,} productos", f"{len(sup_cols)} supermercado(s)"]
-    st.caption(" · ".join(info_parts))
+    st.caption("  ·  ".join(info_parts))
 
     # ─── COLUMN CONFIG ───────────────────────────────────────
     col_cfg = {}
@@ -206,12 +250,16 @@ def render_edicion_datos():
     col_cfg["Promedio"]   = st.column_config.NumberColumn("Promedio",   disabled=True, format="RD$ %.2f")
     col_cfg["🔖 Marcas"] = st.column_config.TextColumn("🔖 Marcas", disabled=True, width="medium")
 
+    tbl_height = _table_height(len(df_display), modo_ampliado)
+
     # ─── TABLA ───────────────────────────────────────────────
     if readonly_mode:
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        st.dataframe(df_display, use_container_width=True, hide_index=True, height=tbl_height)
 
     else:
-        st.markdown("#### Precios por supermercado — columnas de supermercados son editables")
+        if not modo_ampliado:
+            st.markdown("#### Precios por supermercado — columnas de supermercados son editables")
+
         edited = st.data_editor(
             df_display,
             column_config=col_cfg,
@@ -219,15 +267,20 @@ def render_edicion_datos():
             use_container_width=True,
             hide_index=True,
             num_rows="fixed",
+            height=tbl_height,
             key="editor_precios_perm",
         )
 
-        # ── GUARDAR CAMBIOS DE PRECIO ────────────────────────
+        # ── GUARDAR CAMBIOS ──────────────────────────────────
         st.divider()
-        st.warning(
-            "⚠️ **Atencion:** Los cambios de precio que guardes aqui son PERMANENTES "
-            "y no se pueden deshacer. Verifica bien antes de confirmar."
-        )
+        if not modo_ampliado:
+            st.warning(
+                "⚠️ **Atencion:** Los cambios de precio que guardes aqui son PERMANENTES "
+                "y no se pueden deshacer. Verifica bien antes de confirmar."
+            )
+        else:
+            st.caption("⚠️ Los cambios son permanentes e irreversibles.")
+
         confirmar = st.checkbox(
             "Entiendo que los cambios son permanentes y deseo guardar.",
             key="ed_confirm",
@@ -314,8 +367,8 @@ def render_edicion_datos():
                     st.info(f"{len(advertencias)} celda(s) no guardadas — revisa las advertencias.")
                 st.rerun()
 
-    # ─── GESTIONAR MARCADORES ────────────────────────────────
-    if not readonly_mode:
+    # ─── GESTIONAR MARCADORES (oculto en modo ampliado) ──────
+    if not readonly_mode and not modo_ampliado:
         st.divider()
         with st.expander("🔖 Gestionar marcadores", expanded=False):
             st.caption(
@@ -323,7 +376,7 @@ def render_edicion_datos():
                 "Los marcadores se guardan en Supabase y persisten al recargar."
             )
 
-            prods_m   = sorted(df_full["producto"].unique())
+            prods_m       = sorted(df_full["producto"].unique())
             gm1, gm2, gm3 = st.columns(3)
 
             prod_m = gm1.selectbox("Producto", prods_m, key="ed_m_prod")
@@ -333,11 +386,10 @@ def render_edicion_datos():
 
             sup_m = gm3.selectbox("Supermercado", sup_sel, key="ed_m_sup")
 
-            # Categoria del producto seleccionado
             cat_row_m = df_full[df_full["producto"] == prod_m]
-            cat_m = str(cat_row_m.iloc[0]["categoria"]) if not cat_row_m.empty else ""
+            cat_m     = str(cat_row_m.iloc[0]["categoria"]) if not cat_row_m.empty else ""
 
-            gm4, gm5 = st.columns(2)
+            gm4, gm5    = st.columns(2)
             color_label = gm4.selectbox("Color / tipo de marca", list(_COLORES.keys()), key="ed_m_color")
             color_hex   = _COLORES[color_label]
             nota_m      = gm5.text_input("Nota opcional (max 100 caracteres)", max_chars=100, key="ed_m_nota")
@@ -368,20 +420,19 @@ def render_edicion_datos():
                     st.success(f"Desmarcado: {prod_m} — {sup_m}")
                     st.rerun()
 
-            # ── Lista de marcas activas para este filtro ─────
             st.divider()
             if df_marc.empty:
                 st.caption("No hay marcas activas para esta semana y provincia.")
             else:
-                st.caption(f"{len(df_marc)} marca(s) activa(s) para {fmt_sem(sem_sel, 'corta')} · {prov_unica}")
+                st.caption(f"{len(df_marc)} marca(s) activa(s) — {fmt_sem(sem_sel, 'corta')} · {prov_unica}")
                 for row_idx, row_m in df_marc.iterrows():
-                    emoji   = _EMOJI.get(row_m.get("color", ""), "●")
-                    prod_r  = row_m.get("producto", "")
-                    pres_r  = row_m.get("presentacion", "")
-                    sup_r   = row_m.get("supermercado", "")
-                    nota_r  = str(row_m.get("nota", "") or "")
-                    user_r  = row_m.get("username", "")
-                    ts_r    = row_m.get("created_at", "")
+                    emoji  = _EMOJI.get(row_m.get("color", ""), "●")
+                    prod_r = row_m.get("producto", "")
+                    pres_r = row_m.get("presentacion", "")
+                    sup_r  = row_m.get("supermercado", "")
+                    nota_r = str(row_m.get("nota", "") or "")
+                    user_r = row_m.get("username", "")
+                    ts_r   = row_m.get("created_at", "")
 
                     col_card, col_del = st.columns([6, 1])
                     with col_card:
