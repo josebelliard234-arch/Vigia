@@ -94,6 +94,10 @@ def render_auditoria():
             df_edits["categoria_ed"]    = parsed.apply(lambda d: d.get("categoria", ""))
             df_edits["producto_ed"]     = parsed.apply(lambda d: d.get("producto", ""))
             df_edits["presentacion_ed"] = parsed.apply(lambda d: d.get("presentacion", ""))
+            df_edits["diff_abs_ed"]     = parsed.apply(lambda d: d.get("diff_abs", ""))
+            df_edits["diff_pct_ed"]     = parsed.apply(lambda d: d.get("diff_pct", ""))
+            df_edits["success_ed"]      = parsed.apply(lambda d: d.get("success", ""))
+            df_edits["error_ed"]        = parsed.apply(lambda d: d.get("error", ""))
 
             # ── Filtros ──
             fe1, fe2, fe3 = st.columns(3)
@@ -132,12 +136,16 @@ def render_auditoria():
                 st.info("No hay cambios con estos filtros.")
             else:
                 df_tabla = df_fe[[
-                    "timestamp", "usuario", "semana_ed", "categoria_ed",
-                    "provincia_ed", "supermercado_ed", "producto_ed",
-                    "presentacion_ed", "valor_ant", "valor_nuevo",
+                    "accion", "timestamp", "usuario", "rol",
+                    "semana_ed", "categoria_ed", "provincia_ed", "supermercado_ed",
+                    "producto_ed", "presentacion_ed",
+                    "valor_ant", "valor_nuevo",
+                    "diff_abs_ed", "diff_pct_ed", "success_ed", "error_ed",
                 ]].rename(columns={
+                    "accion":          "Accion",
                     "timestamp":       "Fecha / Hora",
                     "usuario":         "Usuario",
+                    "rol":             "Rol",
                     "semana_ed":       "Semana",
                     "categoria_ed":    "Categoria",
                     "provincia_ed":    "Provincia",
@@ -146,6 +154,10 @@ def render_auditoria():
                     "presentacion_ed": "Presentacion",
                     "valor_ant":       "Precio Anterior",
                     "valor_nuevo":     "Precio Nuevo",
+                    "diff_abs_ed":     "Dif. Absoluta",
+                    "diff_pct_ed":     "Dif. %",
+                    "success_ed":      "Exito",
+                    "error_ed":        "Error",
                 }).reset_index(drop=True)
 
                 st.dataframe(df_tabla, use_container_width=True, hide_index=True)

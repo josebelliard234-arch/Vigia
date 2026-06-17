@@ -414,18 +414,25 @@ def render_edicion_datos():
                                 })
 
                             ant_str = f"RD${c['precio_ant']:.2f}" if c["precio_ant"] is not None else "(precio nuevo)"
+                            if c["precio_ant"] is not None and c["precio_ant"] != 0:
+                                _diff_abs = c["precio_new"] - c["precio_ant"]
+                                _diff_pct = _diff_abs / c["precio_ant"] * 100
+                                _diff_str = f"|diff_abs={_diff_abs:+.2f}|diff_pct={_diff_pct:+.2f}"
+                            else:
+                                _diff_str = "|diff_abs=N/A|diff_pct=N/A"
                             log_action(
                                 "EDIT_PRICE", "precio",
                                 (f"semana={c['semana']}|provincia={c['provincia']}"
                                  f"|supermercado={c['supermercado']}|categoria={c['categoria']}"
-                                 f"|producto={c['producto']}|presentacion={c['presentacion']}"),
+                                 f"|producto={c['producto']}|presentacion={c['presentacion']}"
+                                 f"{_diff_str}|success=true"),
                                 ant_str, f"RD${c['precio_new']:.2f}",
                             )
 
                     if len(cambios) > 1:
                         log_action(
                             "BULK_EDIT_PRICE", "precio",
-                            f"semana={sem_sel}|provincia={prov_unica}|n_update={n_update}|n_insert={n_insert}",
+                            f"semana={sem_sel}|provincia={prov_unica}|n_update={n_update}|n_insert={n_insert}|success=true",
                             "", f"{n_update} actualizados · {n_insert} insertados",
                         )
                     partes = []
@@ -440,7 +447,7 @@ def render_edicion_datos():
                 except Exception as _err:
                     log_action(
                         "PRICE_ERROR", "precio",
-                        f"semana={sem_sel}|provincia={prov_unica}|error={str(_err)[:200]}",
+                        f"semana={sem_sel}|provincia={prov_unica}|success=false|error={str(_err)[:200]}",
                         "", "",
                     )
                     st.error(f"Error al guardar los cambios: {_err}")
@@ -475,25 +482,39 @@ def render_edicion_datos():
             col_mk, col_umk = st.columns(2)
             if col_mk.button("Marcar", use_container_width=True, key="ed_m_mark"):
                 if prod_m and pres_m and sup_m:
+                    _prev = df_marc[
+                        (df_marc["supermercado"] == sup_m) &
+                        (df_marc["producto"]     == prod_m) &
+                        (df_marc["presentacion"] == pres_m)
+                    ] if not df_marc.empty else pd.DataFrame()
+                    _estado_ant_mk = f"color={_prev.iloc[0]['color']}" if not _prev.empty else "sin_marca"
                     save_marcador(sem_sel, prov_unica, sup_m, cat_m, prod_m, pres_m,
                                   color=color_hex, nota=nota_m.strip())
                     log_action(
                         "MARK_PRICE", "marcador",
                         (f"semana={sem_sel}|provincia={prov_unica}|supermercado={sup_m}"
-                         f"|producto={prod_m}|presentacion={pres_m}|color={color_hex}"),
-                        "", nota_m.strip(),
+                         f"|categoria={cat_m}|producto={prod_m}|presentacion={pres_m}"),
+                        _estado_ant_mk,
+                        f"color={color_hex}|nota={nota_m.strip()[:50]}",
                     )
                     st.success(f"Marcado: {prod_m} — {sup_m}")
                     st.rerun()
 
             if col_umk.button("Desmarcar", use_container_width=True, key="ed_m_unmark"):
                 if prod_m and pres_m and sup_m:
+                    _cur = df_marc[
+                        (df_marc["supermercado"] == sup_m) &
+                        (df_marc["producto"]     == prod_m) &
+                        (df_marc["presentacion"] == pres_m)
+                    ] if not df_marc.empty else pd.DataFrame()
+                    _estado_ant_umk = f"color={_cur.iloc[0]['color']}" if not _cur.empty else "marcado"
                     delete_marcador(sem_sel, prov_unica, sup_m, cat_m, prod_m, pres_m)
                     log_action(
                         "UNMARK_PRICE", "marcador",
                         (f"semana={sem_sel}|provincia={prov_unica}|supermercado={sup_m}"
-                         f"|producto={prod_m}|presentacion={pres_m}"),
-                        "", "",
+                         f"|categoria={cat_m}|producto={prod_m}|presentacion={pres_m}"),
+                        _estado_ant_umk,
+                        "sin_marca",
                     )
                     st.success(f"Desmarcado: {prod_m} — {sup_m}")
                     st.rerun()
@@ -530,12 +551,16 @@ def render_edicion_datos():
                     with col_del:
                         if st.button("✕", key=f"del_marc_{row_idx}", help="Desmarcar este precio"):
                             cat_r = str(row_m.get("categoria", ""))
+                            _estado_ant_r = (
+                                f"color={row_m.get('color', '')}|nota={str(row_m.get('nota','') or '')[:50]}"
+                            )
                             delete_marcador(sem_sel, prov_unica, sup_r, cat_r, prod_r, pres_r)
                             log_action(
                                 "UNMARK_PRICE", "marcador",
                                 f"semana={sem_sel}|provincia={prov_unica}|supermercado={sup_r}"
-                                f"|producto={prod_r}|presentacion={pres_r}",
-                                "", "",
+                                f"|categoria={cat_r}|producto={prod_r}|presentacion={pres_r}",
+                                _estado_ant_r,
+                                "sin_marca",
                             )
                             st.rerun()
 
@@ -572,7 +597,7 @@ def render_edicion_datos():
                             ), {"sem": sem_sel, "prov": prov_unica, "sup": rst_sup})
                     log_action(
                         "RESTORE_PRICES", "precio",
-                        f"semana={sem_sel}|provincia={prov_unica}|supermercados={','.join(rst_sups)}",
+                        f"semana={sem_sel}|provincia={prov_unica}|supermercados={','.join(rst_sups)}|success=true",
                         f"{len(rst_sups)} supermercado(s)",
                         "precios eliminados",
                     )
@@ -584,7 +609,7 @@ def render_edicion_datos():
                 except Exception as _rst_err:
                     log_action(
                         "PRICE_ERROR", "precio",
-                        f"semana={sem_sel}|provincia={prov_unica}|accion=restore|error={str(_rst_err)[:200]}",
+                        f"semana={sem_sel}|provincia={prov_unica}|accion=restore|success=false|error={str(_rst_err)[:200]}",
                         "", "",
                     )
                     st.error(f"Error al restablecer precios: {_rst_err}")
