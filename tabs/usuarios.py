@@ -140,7 +140,7 @@ def render_usuarios():
         )
 
         rol_opts = ROLES_USUARIO
-        rol_idx  = rol_opts.index(u_edit["rol"]) if (es_edicion and u_edit["rol"] in rol_opts) else 2
+        rol_idx  = rol_opts.index(u_edit["rol"]) if (es_edicion and u_edit["rol"] in rol_opts) else 1
         rol_in   = st.selectbox("Rol", rol_opts, index=rol_idx, key=f"usr_rol_{form_key}")
 
         password_in = st.text_input(
