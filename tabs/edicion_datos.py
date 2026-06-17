@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy import text
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode
 
 from data.database import (
     load_all, get_conn, DEMO_MODE, log_action,
@@ -266,7 +267,7 @@ def render_edicion_datos():
         df_pivot["_delta_pct_"] = float("nan")
     df_pivot["_delta_str_"] = df_pivot["_delta_pct_"].apply(_fmt_delta)
 
-    df_full = df_pivot[idx_cols + sup_cols + ["_prom_", "_marcas_"]].copy().reset_index(drop=True)
+    df_full = df_pivot[idx_cols + sup_cols + ["_prom_", "_delta_pct_", "_marcas_"]].copy().reset_index(drop=True)
 
     fixed_disp = ["categoria", "producto"] + (["presentacion"] if show_pres else [])
     all_cols   = fixed_disp + ["_outlier_"] + sup_cols + ["_prom_", "_delta_str_", "_marcas_"]
@@ -331,41 +332,140 @@ def render_edicion_datos():
     info_parts += [f"{len(df_display):,} productos", f"{len(sup_cols)} supermercado(s)"]
     st.caption("  ·  ".join(info_parts))
 
-    # ─── COLUMN CONFIG ───────────────────────────────────────
-    col_cfg = {}
-    for c in fixed_disp:
-        col_cfg[c] = st.column_config.TextColumn(c.capitalize(), disabled=True)
-    for c in sup_cols:
-        col_cfg[c] = st.column_config.NumberColumn(c, min_value=0.0, format="RD$ %.2f")
-    col_cfg["Promedio"]         = st.column_config.NumberColumn("Promedio",   disabled=True, format="RD$ %.2f")
-    col_cfg["⚠️ Atipico"]     = st.column_config.TextColumn("⚠️ Atipico",  disabled=True, width="medium",
-                                    help="Supermercados con precio que se desvía >15% del promedio del grupo.")
-    col_cfg["\U0001f4ca Δ sem.ant."] = st.column_config.TextColumn("📊 Δ sem.ant.", disabled=True, width="small",
-                                    help="Variacion del promedio respecto a la semana anterior. ⚠️ si supera 3%.")
-    col_cfg["\U0001f516 Marcas"] = st.column_config.TextColumn("🔖 Marcas", disabled=True, width="medium")
-
     tbl_height = _table_height(len(df_display), modo_ampliado)
 
     # ─── TABLA ───────────────────────────────────────────────
     if readonly_mode:
+        st.caption("Modo solo lectura — selecciona exactamente una provincia para editar.")
         st.dataframe(df_display, use_container_width=True, hide_index=True, height=tbl_height)
 
     else:
         if not modo_ampliado:
-            st.markdown("#### Precios por supermercado — columnas de supermercados son editables")
+            st.markdown(
+                "#### Precios por supermercado  "
+                "<small style='font-weight:normal;color:#94A3B8;'>"
+                "clic para editar · Tab/Enter para navegar · Ctrl+Z para deshacer</small>",
+                unsafe_allow_html=True,
+            )
 
-        edited = st.data_editor(
-            df_display,
-            column_config=col_cfg,
-            disabled=fixed_disp + ["Promedio", "⚠️ Atipico", "\U0001f4ca Δ sem.ant.", "\U0001f516 Marcas"],
-            use_container_width=True,
-            hide_index=True,
-            num_rows="fixed",
+        # ── Datos para AG Grid (columnas ocultas para JS styling) ────
+        df_ag = df_display.copy()
+        df_ag["_prom_raw_"]  = df_full["_prom_"].values
+        df_ag["_delta_raw_"] = df_full["_delta_pct_"].values
+        df_ag["_row_idx_"]   = range(len(df_ag))
+
+        # Cache: preservar edits entre reruns; reiniciar cuando cambien los filtros
+        _ag_ck = (f"{sem_sel}|{sorted(prov_sel)}|{cat_sel}|{prod_sel}"
+                  f"|{pres_sel}|{sorted(sup_sel)}|{solo_marcados}|{solo_alertas}")
+        if st.session_state.get("_ed_ag_ckey") != _ag_ck:
+            st.session_state["_ed_ag_df"]   = df_ag.copy()
+            st.session_state["_ed_ag_ckey"] = _ag_ck
+
+        # ── JS: estilos condicionales ─────────────────────────────────
+        _js_px_style = JsCode("""
+        function(params) {
+            if (params.value == null || params.value <= 0) return null;
+            var p = params.data._prom_raw_;
+            if (!p || p <= 0) return null;
+            var d = (params.value - p) / p * 100;
+            if (d > 15)  return {backgroundColor:'#450a0a', color:'#fca5a5', fontWeight:'700'};
+            if (d < -15) return {backgroundColor:'#172554', color:'#93c5fd', fontWeight:'700'};
+            return null;
+        }
+        """)
+        _js_px_fmt = JsCode("""
+        function(params) {
+            if (params.value == null || params.value === '') return '';
+            return 'RD$ ' + parseFloat(params.value).toFixed(2);
+        }
+        """)
+        _js_px_tip = JsCode("""
+        function(params) {
+            if (params.value == null || params.value <= 0) return '';
+            var p = params.data._prom_raw_;
+            if (!p || p <= 0) return 'RD$ ' + parseFloat(params.value).toFixed(2);
+            var d = ((params.value - p) / p * 100).toFixed(1);
+            var s = parseFloat(d) >= 0 ? '+' : '';
+            return 'RD$ ' + parseFloat(params.value).toFixed(2) +
+                   '  |  Prom: RD$ ' + parseFloat(p).toFixed(2) +
+                   '  |  Desv: ' + s + d + '%';
+        }
+        """)
+        _js_dt_style = JsCode("""
+        function(params) {
+            var r = params.data._delta_raw_;
+            if (r == null || isNaN(r)) return {color:'#64748b'};
+            if (r > 3)  return {color:'#f87171', fontWeight:'600'};
+            if (r < -3) return {color:'#4ade80', fontWeight:'600'};
+            return {color:'#94a3b8'};
+        }
+        """)
+        _js_ot_style = JsCode("""
+        function(params) {
+            if (!params.value) return null;
+            if (params.value.indexOf('▲') >= 0)
+                return {color:'#f87171', fontWeight:'700'};
+            if (params.value.indexOf('▼') >= 0)
+                return {color:'#93c5fd', fontWeight:'700'};
+            return null;
+        }
+        """)
+
+        # ── Construir gridOptions ─────────────────────────────────────
+        gb = GridOptionsBuilder.from_dataframe(st.session_state["_ed_ag_df"])
+        gb.configure_default_column(
+            resizable=True, sortable=True, filter=False,
+            editable=False, suppressMovable=False,
+            wrapHeaderText=True, autoHeaderHeight=True, minWidth=80,
+        )
+        for c in fixed_disp:
+            gb.configure_column(c, pinned="left", editable=False,
+                                width=130, suppressMovable=True, filter=True)
+        gb.configure_column("⚠️ Atipico", editable=False, width=215,
+                            cellStyle=_js_ot_style, tooltipField="⚠️ Atipico")
+        for c in sup_cols:
+            gb.configure_column(c, editable=True, type=["numericColumn"],
+                                width=148, singleClickEdit=True,
+                                cellStyle=_js_px_style,
+                                valueFormatter=_js_px_fmt,
+                                tooltipValueGetter=_js_px_tip)
+        gb.configure_column("Promedio", editable=False, type=["numericColumn"],
+                            width=130, valueFormatter=_js_px_fmt)
+        gb.configure_column("\U0001f4ca Δ sem.ant.", editable=False,
+                            width=130, cellStyle=_js_dt_style)
+        gb.configure_column("\U0001f516 Marcas", editable=False, width=215)
+        gb.configure_column("_prom_raw_",  hide=True)
+        gb.configure_column("_delta_raw_", hide=True)
+        gb.configure_column("_row_idx_",   hide=True)
+        gb.configure_grid_options(
+            rowHeight=38, headerHeight=44,
+            suppressRowClickSelection=True,
+            enableBrowserTooltips=True,
+            stopEditingWhenCellsLoseFocus=True,
+            undoRedoCellEditing=True,
+            undoRedoCellEditingLimit=20,
+        )
+        go = gb.build()
+
+        grid_resp = AgGrid(
+            st.session_state["_ed_ag_df"],
+            gridOptions=go,
+            update_mode=GridUpdateMode.VALUE_CHANGED,
+            data_return_mode=DataReturnMode.ALL_ROWS,
+            theme="streamlit",
             height=tbl_height,
-            key="editor_precios_perm",
+            allow_unsafe_jscode=True,
+            fit_columns_on_grid_load=False,
+            key="aggrid_precios",
         )
 
-        # ── GUARDAR CAMBIOS ──────────────────────────────────
+        # Persistir edits entre reruns del mismo conjunto de filtros
+        _resp_data = grid_resp.get("data")
+        if _resp_data is not None and len(_resp_data) > 0:
+            st.session_state["_ed_ag_df"] = pd.DataFrame(_resp_data)
+        edited_df = pd.DataFrame(st.session_state["_ed_ag_df"])
+
+        # ── GUARDAR CAMBIOS ──────────────────────────────────────────
         st.divider()
         if not modo_ampliado:
             st.warning(
@@ -384,28 +484,48 @@ def render_edicion_datos():
             cambios = []
             advertencias = []
 
-            for i in range(len(edited)):
-                for sup_col in sup_cols:
-                    new_val = edited.loc[i, sup_col]
-                    old_val = df_original.loc[i, sup_col]
+            for _, er in edited_df.iterrows():
+                ri     = int(er["_row_idx_"])
+                prod_i = str(df_full.loc[ri, "producto"])
+                pres_i = str(df_full.loc[ri, "presentacion"])
+                cat_i  = str(df_full.loc[ri, "categoria"])
 
-                    if pd.isna(new_val) and pd.isna(old_val):
+                for sup_col in sup_cols:
+                    # Valor editado
+                    try:
+                        _nv = er[sup_col]
+                        if _nv is None or str(_nv) in ("", "None", "nan"):
+                            new_val = None
+                        else:
+                            _nv_f = float(_nv)
+                            new_val = None if pd.isna(_nv_f) else _nv_f
+                    except (TypeError, ValueError, KeyError):
+                        new_val = None
+
+                    # Valor original
+                    try:
+                        _ov = df_original.iloc[ri][sup_col]
+                        if _ov is None or str(_ov) in ("", "None"):
+                            old_val = None
+                        elif pd.isna(_ov):
+                            old_val = None
+                        else:
+                            old_val = float(_ov)
+                    except (TypeError, ValueError):
+                        old_val = None
+
+                    if new_val is None and old_val is None:
                         continue
-                    if not pd.isna(new_val) and not pd.isna(old_val):
-                        if round(float(new_val), 4) == round(float(old_val), 4):
+                    if new_val is not None and old_val is not None:
+                        if round(new_val, 4) == round(old_val, 4):
                             continue
 
-                    prod_i = str(df_full.loc[i, "producto"])
-                    pres_i = str(df_full.loc[i, "presentacion"])
-                    cat_i  = str(df_full.loc[i, "categoria"])
-
-                    if pd.isna(new_val) and not pd.isna(old_val):
+                    if new_val is None and old_val is not None:
                         advertencias.append(f"**{prod_i}** / {sup_col}: precio borrado no permitido.")
                         continue
 
-                    if pd.isna(old_val):
-                        # Celda vacía → intentar INSERT si el nuevo valor es válido
-                        if pd.isna(new_val) or float(new_val) <= 0:
+                    if old_val is None:
+                        if new_val <= 0:
                             continue
                         id_match = df_f[
                             (df_f["producto"]     == prod_i) &
@@ -422,7 +542,7 @@ def render_edicion_datos():
                             "supermercado": sup_col, "categoria": cat_i,
                             "producto": prod_i, "presentacion": pres_i,
                             "id_producto": int(id_match.iloc[0]),
-                            "precio_ant": None, "precio_new": float(new_val),
+                            "precio_ant": None, "precio_new": new_val,
                             "es_insert": True,
                         })
                         continue
@@ -448,7 +568,7 @@ def render_edicion_datos():
                         "supermercado": str(rec["supermercado"]), "categoria": cat_i,
                         "producto": prod_i, "presentacion": pres_i,
                         "id_producto": int(rec["id_producto"]),
-                        "precio_ant": float(old_val), "precio_new": float(new_val),
+                        "precio_ant": old_val, "precio_new": new_val,
                         "es_insert": False,
                     })
 
@@ -536,6 +656,8 @@ def render_edicion_datos():
                     st.success(f"{' · '.join(partes)} permanentemente.")
                     if advertencias:
                         st.info(f"{len(advertencias)} celda(s) no guardadas — revisa las advertencias.")
+                    st.session_state.pop("_ed_ag_df",   None)
+                    st.session_state.pop("_ed_ag_ckey", None)
                     st.rerun()
                 except Exception as _err:
                     log_action(
