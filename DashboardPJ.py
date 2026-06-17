@@ -384,23 +384,28 @@ categorias    = sorted(df_all["categoria"].unique())
 categorias    = [c for c in categorias if c != "Referencia"]
 
 col1, col2, col3 = st.columns(3)
-with col1:
-    cat_sel = st.selectbox("Categoria", ["Todas"] + categorias)
-with col2:
+
+# semana_actual se define primero (col3) para calcular comp_opts
+with col3:
     semana_actual = st.selectbox(
         "Semana actual",
         todas_semanas,
         index=len(todas_semanas) - 1,
-        format_func=fmt_sem,
+        format_func=lambda x: fmt_sem(x, "larga"),
     ) if todas_semanas else None
-with col3:
-    comp_opts = sorted([s for s in todas_semanas if s != semana_actual], reverse=True)
+
+comp_opts = sorted([s for s in todas_semanas if s != semana_actual], reverse=True)
+
+with col1:
     semana_comp = st.selectbox(
         "Semana a comparar",
         comp_opts,
         index=0,
-        format_func=fmt_sem,
+        format_func=lambda x: fmt_sem(x, "larga"),
     ) if comp_opts else None
+
+with col2:
+    cat_sel = st.selectbox("Categoria", ["Todas"] + categorias)
 
 df_actual, fuente_actual = resolver_semana(df_all, semana_actual, preferir="bruto")
 df_comp,   fuente_comp   = resolver_semana(df_all, semana_comp,   preferir="validado")
