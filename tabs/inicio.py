@@ -8,12 +8,13 @@ from styles.theme import TEXT_MAIN, TEXT_MUTED, TEXT_SECONDARY, RED, GREEN, YELL
 
 def _kpi_big(label: str, value: str, sub: str = "", color: str = "#3B82F6") -> str:
     return (
-        f'<div style="padding:1.1rem 1.2rem 1rem 1.2rem;border-radius:14px;'
-        f'background:rgba(15,23,42,0.8);border:1px solid rgba(148,163,184,0.13);'
+        f'<div style="padding:1.2rem 1.3rem 1.1rem 1.3rem;border-radius:14px;'
+        f'background:linear-gradient(135deg,{color}18 0%,{color}08 100%);'
+        f'border:1px solid {color}55;border-top:3px solid {color};'
         f'height:100%;box-sizing:border-box;">'
-        f'<div style="font-size:.76rem;color:#64748B;font-weight:600;'
-        f'text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">{label}</div>'
-        f'<div style="font-size:2.1rem;font-weight:800;color:{color};'
+        f'<div style="font-size:.74rem;color:{color}cc;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem;">{label}</div>'
+        f'<div style="font-size:2.2rem;font-weight:800;color:{color};'
         f'line-height:1.1;word-break:break-word;">{value}</div>'
         f'<div style="font-size:.76rem;color:#64748B;margin-top:.3rem;">{sub}</div>'
         f'</div>'
@@ -22,11 +23,12 @@ def _kpi_big(label: str, value: str, sub: str = "", color: str = "#3B82F6") -> s
 
 def _kpi_small(label: str, value: str, color: str = "#94A3B8") -> str:
     return (
-        f'<div style="padding:.75rem .9rem .7rem .9rem;border-radius:12px;'
-        f'background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.1);">'
-        f'<div style="font-size:.7rem;color:#475569;font-weight:700;'
-        f'text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem;">{label}</div>'
-        f'<div style="font-size:1.35rem;font-weight:700;color:{color};">{value}</div>'
+        f'<div style="padding:.8rem 1rem .75rem 1rem;border-radius:12px;'
+        f'background:linear-gradient(135deg,{color}15 0%,{color}06 100%);'
+        f'border:1px solid {color}40;border-left:3px solid {color};">'
+        f'<div style="font-size:.68rem;color:{color}bb;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem;">{label}</div>'
+        f'<div style="font-size:1.45rem;font-weight:800;color:{color};">{value}</div>'
         f'</div>'
     )
 
