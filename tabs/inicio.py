@@ -50,8 +50,8 @@ def _fuente_badge(fuente: str) -> str:
 
 
 def render_inicio(ctx):
-    df_actual  = ctx.df_actual
-    df_comp    = ctx.df_comp
+    df_actual  = ctx.df_actual.copy() if ctx.df_actual is not None else ctx.df_actual
+    df_comp    = ctx.df_comp.copy()   if ctx.df_comp   is not None else ctx.df_comp
     df_all     = ctx.df_all
     sa_lbl     = ctx.sa_lbl
     sc_lbl     = ctx.sc_lbl
@@ -67,6 +67,35 @@ def render_inicio(ctx):
         '</div>',
         unsafe_allow_html=True,
     )
+
+    # ── Filtros avanzados ─────────────────────────────────────
+    with st.expander("🔍 Filtros avanzados", expanded=False):
+        provincias_disp = (
+            sorted(df_actual["provincia"].dropna().unique())
+            if df_actual is not None and not df_actual.empty else []
+        )
+        fa1, fa2 = st.columns(2)
+        prov_sel = fa1.multiselect(
+            "Provincia",
+            provincias_disp,
+            default=provincias_disp,
+            key="inicio_prov",
+        )
+        buscar_prod = fa2.text_input(
+            "Buscar producto (contiene)",
+            value="",
+            key="inicio_buscar",
+        )
+        if provincias_disp and prov_sel:
+            df_actual = df_actual[df_actual["provincia"].isin(prov_sel)]
+        elif provincias_disp and not prov_sel:
+            df_actual = df_actual.iloc[0:0]
+        if buscar_prod.strip():
+            p = buscar_prod.strip()
+            if df_actual is not None and not df_actual.empty:
+                df_actual = df_actual[df_actual["producto"].str.contains(p, case=False, na=False)]
+            if df_comp is not None and not df_comp.empty:
+                df_comp = df_comp[df_comp["producto"].str.contains(p, case=False, na=False)]
 
     # ── Selector de producto ──────────────────────────────────
     with st.container():

@@ -420,43 +420,6 @@ if cat_sel != "Todas":
     df_comp   = df_comp[df_comp["categoria"] == cat_sel]
 
 
-# ============================================================
-# FILTROS AVANZADOS
-# ============================================================
-with st.expander("Filtros avanzados", expanded=False):
-    st.caption("Estos filtros se aplican a las vistas de Comparativa y Posibles Errores.")
-    fa1, fa2 = st.columns(2)
-    with fa1:
-        provincias_disp = (
-            sorted([p for p in df_actual["provincia"].dropna().unique()])
-            if not df_actual.empty else []
-        )
-        prov_sel = st.multiselect(
-            "Provincia (datos brutos)", provincias_disp,
-            default=provincias_disp, key="adv_prov",
-        )
-    with fa2:
-        buscar_prod = st.text_input("Buscar producto (contiene)", value="", key="adv_buscar")
-    st.write(
-        f"**Categoria:** {cat_sel}  |  **Semana actual:** {_sa_lbl} "
-        f"({fuente_actual or 'N/D'})  |  **Semana comparada:** {_sc_lbl} "
-        f"({fuente_comp or 'N/D'})"
-    )
-
-if not df_actual.empty and provincias_disp:
-    if prov_sel:
-        df_actual = df_actual[df_actual["provincia"].isin(prov_sel)]
-    else:
-        df_actual = df_actual.iloc[0:0]
-
-if buscar_prod.strip():
-    patron = buscar_prod.strip()
-    if not df_actual.empty:
-        df_actual = df_actual[df_actual["producto"].str.contains(patron, case=False, na=False)]
-    if not df_comp.empty:
-        df_comp = df_comp[df_comp["producto"].str.contains(patron, case=False, na=False)]
-
-
 
 # ============================================================
 # CONTEXTO PARA LOS TABS
