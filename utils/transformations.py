@@ -143,9 +143,10 @@ def preparar_productos_con_cambio(merged_df, cat_display, cats_norm_map,
             .apply(lambda p: _clasificar_por_nombre(p)[0])
         )
 
-    # -- Filtro por categoria --
-    if cat_display != "Todas las categorias":
-        df = df[df["_cat_norm"] == cat_display]
+    # -- Filtro por categoria (acepta string legacy o lista) --
+    if cat_display and cat_display != "Todas las categorias":
+        cats_f = [cat_display] if isinstance(cat_display, str) else list(cat_display)
+        df = df[df["_cat_norm"].isin(cats_f)]
 
     if df.empty:
         return empty, empty, empty

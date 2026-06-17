@@ -119,17 +119,17 @@ def render_comparativa(ctx):
     # -- Construir mapa de categorias normalizadas --
     cats_raw_pcc  = sorted(merged["categoria"].dropna().astype(str).unique())
     cats_norm_pcc = {c: normalizar_categoria(c) for c in cats_raw_pcc}
-    cats_display_pcc = ["Todas las categorias"] + sorted(
-        set(cats_norm_pcc.values()) - {"Sin categoria"}
-    )
+    cats_display_pcc = sorted(set(cats_norm_pcc.values()) - {"Sin categoria"})
 
     # -- Controles principales --
     pcc_col1, pcc_col2, pcc_col3 = st.columns([2, 2, 2])
     with pcc_col1:
-        cat_pcc = st.selectbox(
+        cat_pcc = st.multiselect(
             "Categoria",
             cats_display_pcc,
-            key="pcc_categoria"
+            default=[],
+            key="pcc_categoria",
+            placeholder="Todas las categorias",
         )
     with pcc_col2:
         vista_pcc = st.selectbox(
@@ -197,15 +197,16 @@ def render_comparativa(ctx):
         # Revertir orden para que la barra mas alta quede arriba
         df_graf_plot = df_graf_plot.iloc[::-1].reset_index(drop=True)
 
+        _cat_lbl = "Todas" if not cat_pcc else " / ".join(cat_pcc)
         if vista_pcc == "General":
             titulo_pcc = (
-                f"Productos con cambio — {cat_pcc} — General — "
+                f"Productos con cambio — {_cat_lbl} — General — "
                 f"{sa_lbl} vs {sc_lbl}"
             )
             hover_extra = ""
         else:
             titulo_pcc = (
-                f"Productos con cambio — {cat_pcc} — {sup_pcc} — "
+                f"Productos con cambio — {_cat_lbl} — {sup_pcc} — "
                 f"{sa_lbl} vs {sc_lbl}"
             )
             hover_extra = f"Establecimiento: {sup_pcc}<br>"
