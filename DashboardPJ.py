@@ -54,9 +54,7 @@ from utils.dates import fmt_sem, semana_label_a_datetime
 from utils.formatting import norm_key
 from utils.transformations import resolver_semana
 
-from components.resumen import (
-    render_franja_compacta, render_resumen_general,
-)
+from tabs.inicio import render_inicio
 
 from tabs.comparativa      import render_comparativa
 from tabs.historial        import render_historial
@@ -106,6 +104,7 @@ with st.sidebar:
     # ---- Menu de navegacion segun rol ----
     if _es_admin:
         _nav_options = [
+            "Inicio",
             "Comparativa de Precios",
             "Historial y Proyeccion",
             "Por Supermercado",
@@ -118,12 +117,14 @@ with st.sidebar:
             "Auditoria",
         ]
         _nav_icons = [
+            "speedometer2",
             "bar-chart-line", "graph-up-arrow", "shop", "stars",
             "exclamation-triangle", "bell", "folder2-open",
             "pencil-square", "people", "shield-check",
         ]
     else:
         _nav_options = [
+            "Inicio",
             "Comparativa de Precios",
             "Historial y Proyeccion",
             "Por Supermercado",
@@ -132,6 +133,7 @@ with st.sidebar:
             "Simulacion Temporal",
         ]
         _nav_icons = [
+            "speedometer2",
             "bar-chart-line", "graph-up-arrow", "shop", "stars",
             "exclamation-triangle", "sliders",
         ]
@@ -450,77 +452,6 @@ if buscar_prod.strip():
         df_comp = df_comp[df_comp["producto"].str.contains(patron, case=False, na=False)]
 
 
-# ============================================================
-# SELECTOR DE PRODUCTO PARA EL HEADER
-# ============================================================
-_productos_header = sorted(df_all["producto"].dropna().unique()) if not df_all.empty else []
-
-_hc1, _hc2, _hc3 = st.columns([2, 2, 1])
-with _hc1:
-    header_prod = st.selectbox(
-        "Producto (panel superior)",
-        ["- Ver todos -"] + _productos_header,
-        index=0,
-        key="header_producto",
-        help="Selecciona un producto para ver su precio promedio arriba.",
-    )
-with _hc2:
-    if header_prod and header_prod != "- Ver todos -":
-        _pres_opts = sorted(
-            df_all[df_all["producto"] == header_prod]["presentacion"].dropna().unique()
-        )
-        _pres_opts_all = ["- Todas -"] + _pres_opts if len(_pres_opts) > 1 else _pres_opts
-        header_pres = st.selectbox(
-            "Presentacion", _pres_opts_all, index=0, key="header_presentacion",
-        )
-    else:
-        header_pres = None
-        st.selectbox("Presentacion", ["-"], disabled=True, key="header_presentacion_dis")
-with _hc3:
-    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-    st.caption(f"Semanas en DB: **{len(semanas_en_db())}**")
-
-
-def _promedio_header(df_fuente, producto, presentacion):
-    if df_fuente is None or df_fuente.empty or not producto or producto == "- Ver todos -":
-        return df_fuente["precio"].mean() if (df_fuente is not None and not df_fuente.empty) else None
-    mask = df_fuente["producto"].map(norm_key) == norm_key(producto)
-    if presentacion and presentacion not in ("- Todas -", "- Ver todos -"):
-        mask &= df_fuente["presentacion"].map(norm_key) == norm_key(presentacion)
-    sub = df_fuente[mask]
-    return float(sub["precio"].mean()) if not sub.empty else None
-
-
-promedio_actual_header = _promedio_header(df_actual, header_prod, header_pres)
-promedio_comp_header   = _promedio_header(df_comp,   header_prod, header_pres)
-
-_prod_label = header_prod if (header_prod and header_prod != "- Ver todos -") else None
-_pres_label = (
-    header_pres
-    if (header_pres and header_pres not in ("- Todas -", None))
-    else ("Todas las presentaciones" if _prod_label else None)
-)
-
-render_franja_compacta(
-    _sa_lbl, _sc_lbl,
-    _prod_label or "Todos los productos",
-    promedio_actual_header,
-    promedio_comp_header,
-    fuente_actual,
-)
-
-with st.expander("Ver resumen general", expanded=False):
-    render_resumen_general(
-        semana_actual, semana_comp,
-        len(df_actual),
-        promedio_actual_header,
-        fuente_actual,
-        _prod_label, _pres_label,
-        promedio_comp_header,
-    )
-
-st.divider()
-
 
 # ============================================================
 # CONTEXTO PARA LOS TABS
@@ -549,8 +480,11 @@ ctx = SimpleNamespace(
 # ROUTING DE SECCIONES
 # ============================================================
 
-# --- Tabs compartidos (admin + viewer) ---
-if section == "Comparativa de Precios":
+if section == "Inicio":
+    render_inicio(ctx)
+
+# --- Tabs compartidos ---
+elif section == "Comparativa de Precios":
     render_comparativa(ctx)
 
 elif section in ("Historial y Proyeccion", "Historial y Proyección"):
