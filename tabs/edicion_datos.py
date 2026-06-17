@@ -451,7 +451,7 @@ def render_edicion_datos():
             st.session_state["_ed_ag_df"],
             gridOptions=go,
             update_mode=GridUpdateMode.VALUE_CHANGED,
-            data_return_mode=DataReturnMode.ALL_ROWS,
+            data_return_mode=DataReturnMode.AS_INPUT,
             theme="streamlit",
             height=tbl_height,
             allow_unsafe_jscode=True,
