@@ -30,7 +30,6 @@ def verify_password(password: str, password_hash: str, salt: str) -> bool:
 def init_auth_db():
     """Agrega columnas de autenticacion si no existen y crea usuarios por defecto."""
     if _is_postgres():
-        # En PostgreSQL usamos PL/pgSQL para agregar columnas sin abortar la transaccion
         for col in ("username", "password_hash", "salt"):
             try:
                 with get_conn() as con:
@@ -42,6 +41,16 @@ def init_auth_db():
                     """))
             except Exception:
                 pass
+        try:
+            with get_conn() as con:
+                con.execute(text("""
+                    DO $$ BEGIN
+                        ALTER TABLE usuarios ADD COLUMN must_change_password INTEGER DEFAULT 1;
+                    EXCEPTION WHEN duplicate_column THEN NULL;
+                    END $$;
+                """))
+        except Exception:
+            pass
     else:
         with get_conn() as con:
             existing = {
@@ -50,6 +59,18 @@ def init_auth_db():
             for col in ("username", "password_hash", "salt"):
                 if col not in existing:
                     con.execute(text(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT"))
+            if "must_change_password" not in existing:
+                con.execute(text(
+                    "ALTER TABLE usuarios ADD COLUMN must_change_password INTEGER DEFAULT 1"
+                ))
+
+    try:
+        with get_conn() as con:
+            con.execute(text(
+                "UPDATE usuarios SET must_change_password=1 WHERE must_change_password IS NULL"
+            ))
+    except Exception:
+        pass
 
     with get_conn() as con:
         count = con.execute(text(
@@ -66,8 +87,9 @@ def init_auth_db():
                 ph, salt = hash_password(password)
                 con.execute(text("""
                     INSERT INTO usuarios
-                       (nombre, email, rol, activo, fecha_creacion, username, password_hash, salt)
-                       VALUES (:nombre, :email, :rol, 1, :fecha, :username, :ph, :salt)
+                       (nombre, email, rol, activo, fecha_creacion,
+                        username, password_hash, salt, must_change_password)
+                       VALUES (:nombre, :email, :rol, 1, :fecha, :username, :ph, :salt, 1)
                 """), {
                     "nombre": username, "email": "", "rol": rol,
                     "fecha": now, "username": username, "ph": ph, "salt": salt,
@@ -90,8 +112,9 @@ def create_user(username: str, password: str, rol: str,
         now = datetime.now().strftime("%d/%m/%Y %I:%M %p")
         con.execute(text("""
             INSERT INTO usuarios
-               (nombre, email, rol, activo, fecha_creacion, username, password_hash, salt)
-               VALUES (:nombre, :email, :rol, 1, :fecha, :username, :ph, :salt)
+               (nombre, email, rol, activo, fecha_creacion,
+                username, password_hash, salt, must_change_password)
+               VALUES (:nombre, :email, :rol, 1, :fecha, :username, :ph, :salt, 1)
         """), {
             "nombre": nombre or username, "email": email or "",
             "rol": rol, "fecha": now,
@@ -150,6 +173,18 @@ def delete_user(uid: int):
     log_action("DELETE_USER", "usuario", f"username={uname}", f"rol={rol_u}", "")
 
 
+def change_password_first_login(uid: int, new_password: str):
+    """Cambia la contrasena y marca must_change_password=0."""
+    ph, salt = hash_password(new_password)
+    with get_conn() as con:
+        con.execute(text("""
+            UPDATE usuarios
+            SET password_hash=:ph, salt=:salt, must_change_password=0
+            WHERE id=:uid
+        """), {"ph": ph, "salt": salt, "uid": uid})
+    log_action("UPDATE_USER", "usuario", f"id={uid}", "", "password cambiado (primer acceso)")
+
+
 def load_users_safe() -> pd.DataFrame:
     """Carga usuarios sin exponer password_hash ni salt."""
     try:
@@ -171,19 +206,22 @@ def verify_login(username: str, password: str):
     """Devuelve dict con datos del usuario si las credenciales son correctas, None si no."""
     with get_conn() as con:
         row = con.execute(text(
-            "SELECT id, username, password_hash, salt, rol, activo, nombre "
+            "SELECT id, username, password_hash, salt, rol, activo, nombre, must_change_password "
             "FROM usuarios WHERE username=:u"
         ), {"u": username}).fetchone()
     if not row:
         return None
-    uid, uname, ph, salt, rol, activo, nombre = row
+    uid, uname, ph, salt, rol, activo, nombre, must_chg = row
     if not activo:
         return None
     if not ph or not salt:
         return None
     if verify_password(password, ph, salt):
         log_action("LOGIN", "sesion", f"username={uname}", "", "")
-        return {"id": uid, "username": uname, "rol": rol, "nombre": nombre}
+        return {
+            "id": uid, "username": uname, "rol": rol, "nombre": nombre,
+            "must_change_password": int(must_chg) if must_chg is not None else 1,
+        }
     log_action("LOGIN_FAIL", "sesion", f"username={username}", "", "")
     return None
 
@@ -234,25 +272,110 @@ def _render_login():
             "</div>",
             unsafe_allow_html=True,
         )
-        with st.form("login_form", clear_on_submit=False):
-            username = st.text_input("Usuario", placeholder="Tu nombre de usuario")
-            password = st.text_input("Contrasena", type="password", placeholder="Contrasena")
-            submitted = st.form_submit_button("Iniciar sesion", use_container_width=True)
 
-        if submitted:
+        # ── Fase 2: cambio obligatorio (primer acceso) ─────────
+        pending = st.session_state.get("_login_pending")
+        if pending:
+            st.info(
+                f"**{pending['nombre']}**, tu cuenta requiere una nueva contrasena "
+                "antes de continuar."
+            )
+            with st.form("form_force_chpw"):
+                nueva     = st.text_input("Nueva contrasena",    type="password")
+                confirmar = st.text_input("Confirmar contrasena", type="password")
+                ok = st.form_submit_button(
+                    "Guardar contrasena e ingresar", use_container_width=True
+                )
+            if ok:
+                if not nueva.strip():
+                    st.error("La contrasena no puede estar vacia.")
+                elif len(nueva.strip()) < 6:
+                    st.error("Minimo 6 caracteres.")
+                elif nueva != confirmar:
+                    st.error("Las contrasenas no coinciden.")
+                else:
+                    change_password_first_login(pending["id"], nueva.strip())
+                    st.session_state.update({
+                        "authenticated": True,
+                        "username": pending["username"],
+                        "rol":      pending["rol"],
+                        "user_id":  pending["id"],
+                        "nombre":   pending["nombre"],
+                    })
+                    st.session_state.pop("_login_pending", None)
+                    st.rerun()
+            st.markdown(
+                "<div style='text-align:center;margin-top:.6rem;'>"
+                "<small style='color:#64748B;cursor:pointer;'>",
+                unsafe_allow_html=True,
+            )
+            if st.button("← Volver al inicio de sesion", key="btn_cancel_force"):
+                st.session_state.pop("_login_pending", None)
+                st.rerun()
+            return
+
+        # ── Fase 1: login normal ───────────────────────────────
+        username  = st.text_input("Usuario",    placeholder="Tu nombre de usuario", key="li_user")
+        password  = st.text_input("Contrasena", placeholder="Contrasena",
+                                  type="password", key="li_pass")
+
+        # Checkbox pequeño "Cambiar contrasena" — debajo del campo contraseña
+        st.markdown(
+            "<style>"
+            "div[data-testid='stCheckbox'] label {"
+            "  font-size:.8rem !important; color:#94A3B8 !important;"
+            "}"
+            "</style>",
+            unsafe_allow_html=True,
+        )
+        show_chpw = st.checkbox("Cambiar contrasena", key="li_show_chpw")
+
+        new_pass = conf_pass = ""
+        if show_chpw:
+            new_pass  = st.text_input("Nueva contrasena",    type="password", key="li_new_pass")
+            conf_pass = st.text_input("Confirmar contrasena", type="password", key="li_conf_pass")
+
+        st.markdown("<div style='margin-top:.3rem'></div>", unsafe_allow_html=True)
+        login_btn = st.button("Iniciar sesion", use_container_width=True, key="li_btn")
+
+        if login_btn:
             if not username.strip() or not password.strip():
                 st.error("Ingresa usuario y contrasena.")
                 return
             user = verify_login(username.strip(), password.strip())
-            if user:
-                st.session_state["authenticated"] = True
-                st.session_state["username"] = user["username"]
-                st.session_state["rol"] = user["rol"]
-                st.session_state["user_id"] = user["id"]
-                st.session_state["nombre"] = user["nombre"]
-                st.rerun()
-            else:
+            if not user:
                 st.error("Usuario o contrasena incorrectos, o usuario inactivo.")
+                return
+
+            # Primer acceso: redirigir a cambio obligatorio
+            if user.get("must_change_password"):
+                st.session_state["_login_pending"] = user
+                st.rerun()
+                return
+
+            # Cambio voluntario de contrasena
+            if show_chpw:
+                if not new_pass.strip():
+                    st.error("Ingresa la nueva contrasena.")
+                    return
+                if len(new_pass.strip()) < 6:
+                    st.error("La nueva contrasena debe tener al menos 6 caracteres.")
+                    return
+                if new_pass != conf_pass:
+                    st.error("Las contrasenas no coinciden.")
+                    return
+                change_password_first_login(user["id"], new_pass.strip())
+
+            # Login completo
+            st.session_state.update({
+                "authenticated": True,
+                "username": user["username"],
+                "rol":      user["rol"],
+                "user_id":  user["id"],
+                "nombre":   user["nombre"],
+            })
+            st.session_state.pop("_login_pending", None)
+            st.rerun()
 
 
 # ============================================================
