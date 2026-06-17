@@ -10,11 +10,10 @@ import streamlit as st
 
 DEMO_MODE = os.environ.get("DASHBOARD_PJ_DEMO", "0").strip().lower() in {"1", "true", "yes", "si"}
 
-ROLES_USUARIO = ["Administrador", "Analista", "Visualizador"]
+ROLES_USUARIO = ["Administrador", "Visualizador"]
 
 _ROL_COLOR = {
     "Administrador": "#EF4444",
-    "Analista":      "#3B82F6",
     "Visualizador":  "#64748B",
 }
 

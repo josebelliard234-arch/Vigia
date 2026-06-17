@@ -197,6 +197,5 @@ def render_usuarios():
         st.divider()
         st.caption(
             "Roles: **Administrador** — acceso total. "
-            "**Visualizador** — solo lectura y simulacion. "
-            "**Analista** — tratado igual que Visualizador."
+            "**Visualizador** — solo lectura y simulacion."
         )
