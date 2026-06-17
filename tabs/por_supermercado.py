@@ -75,25 +75,28 @@ def render_por_supermercado(ctx):
 
     # Selector de semanas PROPIO de esta vista
     sc1, sc2 = st.columns(2)
-    with sc1:
+
+    # sup_sem_act se define primero (sc2) para calcular sup_comp_opts
+    with sc2:
         idx_act = todas_semanas.index(semana_actual) if semana_actual in todas_semanas else len(todas_semanas) - 1
         sup_sem_act = st.selectbox(
             "Semana A (actual)", todas_semanas, index=idx_act, key="sup_sem_act",
-            format_func=fmt_sem
+            format_func=lambda x: fmt_sem(x, "larga"),
         )
-    with sc2:
-        sup_comp_opts = [s for s in todas_semanas if s != sup_sem_act]
-        # por defecto la semana inmediatamente anterior a la A
-        default_idx = 0
-        if sup_comp_opts:
-            anteriores = [s for s in sorted(sup_comp_opts) if s < sup_sem_act]
-            if anteriores:
-                objetivo = anteriores[-1]
-                if objetivo in sup_comp_opts:
-                    default_idx = sup_comp_opts.index(objetivo)
+
+    sup_comp_opts = [s for s in todas_semanas if s != sup_sem_act]
+    default_idx = 0
+    if sup_comp_opts:
+        anteriores = [s for s in sorted(sup_comp_opts) if s < sup_sem_act]
+        if anteriores:
+            objetivo = anteriores[-1]
+            if objetivo in sup_comp_opts:
+                default_idx = sup_comp_opts.index(objetivo)
+
+    with sc1:
         sup_sem_comp = st.selectbox(
             "Semana B (comparar)", sup_comp_opts, index=default_idx, key="sup_sem_comp",
-            format_func=fmt_sem
+            format_func=lambda x: fmt_sem(x, "larga"),
         ) if sup_comp_opts else None
 
     # Etiquetas legibles para esta seccion
