@@ -77,6 +77,46 @@ def _table_height(n_rows: int, ampliado: bool) -> int:
     return max(380, min(calculado, 520))
 
 
+_OUTLIER_THRESH = 0.15  # 15 % de desviacion respecto al promedio del grupo
+
+
+def _detect_outliers_row(row_series, sup_cols, threshold=_OUTLIER_THRESH):
+    """Supermercados cuyo precio se desvía más del umbral vs la media del grupo."""
+    prices = []
+    for c in sup_cols:
+        try:
+            v = float(row_series[c])
+            if v > 0:
+                prices.append((c, v))
+        except (TypeError, ValueError):
+            pass
+    if len(prices) < 2:
+        return ""
+    mean_p = sum(v for _, v in prices) / len(prices)
+    if mean_p == 0:
+        return ""
+    parts = []
+    for sup, price in prices:
+        dev = (price - mean_p) / mean_p * 100
+        if abs(dev) > threshold * 100:
+            icon = "▲" if dev > 0 else "▼"
+            parts.append(f"{icon}{abs(dev):.0f}% {sup}")
+    return " · ".join(parts)
+
+
+def _fmt_delta(v):
+    """Formatea la variacion porcentual vs semana anterior."""
+    try:
+        if v is None or pd.isna(v):
+            return "—"
+    except Exception:
+        return "—"
+    v = float(v)
+    sign = "+" if v > 0 else ""
+    alert = " ⚠️" if abs(v) > 3 else ""
+    return f"{sign}{v:.1f}%{alert}"
+
+
 def render_edicion_datos():
     st.subheader("Edicion de Datos")
 
@@ -163,6 +203,21 @@ def render_edicion_datos():
         .rename(columns={"precio": "_prom_"})
     )
 
+    # ─── SEMANA ANTERIOR (variacion semana a semana) ─────────
+    idx_sem = semanas.index(sem_sel) if sem_sel in semanas else -1
+    sem_ant = semanas[idx_sem - 1] if idx_sem > 0 else None
+    df_prom_ant = pd.DataFrame()
+    if sem_ant is not None:
+        df_f_ant = df[df["semana"] == sem_ant].copy()
+        if prov_sel:
+            df_f_ant = df_f_ant[df_f_ant["provincia"].isin(prov_sel)]
+        if not df_f_ant.empty:
+            df_prom_ant = (
+                df_f_ant.groupby(idx_cols, sort=False)["precio"]
+                .mean().round(2).reset_index()
+                .rename(columns={"precio": "_prom_ant_"})
+            )
+
     # ─── PIVOT ───────────────────────────────────────────────
     df_sup_f = df_f[df_f["supermercado"].isin(sup_sel)].copy()
     if df_sup_f.empty:
@@ -196,25 +251,50 @@ def render_edicion_datos():
         for i in range(len(df_pivot))
     ]
 
+    # ─── OUTLIERS ────────────────────────────────────────────
+    df_pivot["_outlier_"] = df_pivot.apply(
+        lambda r: _detect_outliers_row(r, sup_cols), axis=1
+    )
+
+    # ─── VARIACION VS SEMANA ANTERIOR ────────────────────────
+    if not df_prom_ant.empty:
+        df_pivot = df_pivot.merge(df_prom_ant, on=idx_cols, how="left")
+        df_pivot["_delta_pct_"] = (
+            (df_pivot["_prom_"] - df_pivot["_prom_ant_"]) / df_pivot["_prom_ant_"] * 100
+        ).round(1)
+    else:
+        df_pivot["_delta_pct_"] = float("nan")
+    df_pivot["_delta_str_"] = df_pivot["_delta_pct_"].apply(_fmt_delta)
+
     df_full = df_pivot[idx_cols + sup_cols + ["_prom_", "_marcas_"]].copy().reset_index(drop=True)
 
     fixed_disp = ["categoria", "producto"] + (["presentacion"] if show_pres else [])
-    all_cols   = fixed_disp + sup_cols + ["_prom_", "_marcas_"]
+    all_cols   = fixed_disp + ["_outlier_"] + sup_cols + ["_prom_", "_delta_str_", "_marcas_"]
 
     df_display  = (
         df_pivot[all_cols]
-        .rename(columns={"_prom_": "Promedio", "_marcas_": "🔖 Marcas"})
+        .rename(columns={
+            "_prom_":      "Promedio",
+            "_marcas_":    "\U0001f516 Marcas",
+            "_outlier_":   "⚠️ Atipico",
+            "_delta_str_": "\U0001f4ca Δ sem.ant.",
+        })
         .reset_index(drop=True)
     )
     df_original = df_display.copy()
 
     # ─── CONTROLES DE VISTA ──────────────────────────────────
-    cv1, cv2 = st.columns([3, 1])
+    cv1, cv2, cv3 = st.columns([2, 2, 1])
     with cv1:
         solo_marcados = st.checkbox(
             "Mostrar solo productos marcados", value=False, key="ed_solo_marc"
         )
     with cv2:
+        solo_alertas = st.checkbox(
+            "⚠️ Solo con precios atipicos", value=False, key="ed_solo_alertas",
+            help="Muestra solo filas donde algun supermercado se desvía mas del 15% del promedio del grupo.",
+        )
+    with cv3:
         modo_ampliado = st.checkbox(
             "⛶ Modo ampliado", value=False, key="ed_ampliado",
             help="Oculta el sidebar y agranda la tabla para trabajar mas comodo.",
@@ -224,15 +304,24 @@ def render_edicion_datos():
     if modo_ampliado:
         st.markdown(_CSS_AMPLIADO, unsafe_allow_html=True)
 
-    # Aplicar filtro solo marcados
+    # Aplicar filtros de vista
     if solo_marcados:
-        mask_m      = df_display["🔖 Marcas"].str.len() > 0
-        df_display  = df_display[mask_m].reset_index(drop=True)
-        df_full     = df_full[mask_m].reset_index(drop=True)
-        df_original = df_display.copy()
-        if df_display.empty:
-            st.info("No hay productos marcados con los filtros actuales.")
-            return
+        mask_m     = df_display["\U0001f516 Marcas"].str.len() > 0
+        df_display = df_display[mask_m].reset_index(drop=True)
+        df_full    = df_full[mask_m].reset_index(drop=True)
+    if solo_alertas:
+        mask_a     = df_display["⚠️ Atipico"].str.len() > 0
+        df_display = df_display[mask_a].reset_index(drop=True)
+        df_full    = df_full[mask_a].reset_index(drop=True)
+    df_original = df_display.copy()
+    if (solo_marcados or solo_alertas) and df_display.empty:
+        msgs = []
+        if solo_marcados:
+            msgs.append("marcados")
+        if solo_alertas:
+            msgs.append("con alertas")
+        st.info(f"No hay productos {' y '.join(msgs)} con los filtros actuales.")
+        return
 
     # ─── SUBTITULO ───────────────────────────────────────────
     st.divider()
@@ -248,8 +337,12 @@ def render_edicion_datos():
         col_cfg[c] = st.column_config.TextColumn(c.capitalize(), disabled=True)
     for c in sup_cols:
         col_cfg[c] = st.column_config.NumberColumn(c, min_value=0.0, format="RD$ %.2f")
-    col_cfg["Promedio"]   = st.column_config.NumberColumn("Promedio",   disabled=True, format="RD$ %.2f")
-    col_cfg["🔖 Marcas"] = st.column_config.TextColumn("🔖 Marcas", disabled=True, width="medium")
+    col_cfg["Promedio"]         = st.column_config.NumberColumn("Promedio",   disabled=True, format="RD$ %.2f")
+    col_cfg["⚠️ Atipico"]     = st.column_config.TextColumn("⚠️ Atipico",  disabled=True, width="medium",
+                                    help="Supermercados con precio que se desvía >15% del promedio del grupo.")
+    col_cfg["\U0001f4ca Δ sem.ant."] = st.column_config.TextColumn("📊 Δ sem.ant.", disabled=True, width="small",
+                                    help="Variacion del promedio respecto a la semana anterior. ⚠️ si supera 3%.")
+    col_cfg["\U0001f516 Marcas"] = st.column_config.TextColumn("🔖 Marcas", disabled=True, width="medium")
 
     tbl_height = _table_height(len(df_display), modo_ampliado)
 
@@ -264,7 +357,7 @@ def render_edicion_datos():
         edited = st.data_editor(
             df_display,
             column_config=col_cfg,
-            disabled=fixed_disp + ["Promedio", "🔖 Marcas"],
+            disabled=fixed_disp + ["Promedio", "⚠️ Atipico", "\U0001f4ca Δ sem.ant.", "\U0001f516 Marcas"],
             use_container_width=True,
             hide_index=True,
             num_rows="fixed",
