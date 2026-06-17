@@ -39,10 +39,11 @@ def render_simulacion(ctx):
     )
     df_f = sim_df[sim_df["semana"] == sem_sel].copy()
 
-    cats = ["Todas"] + sorted(df_f["categoria"].dropna().unique())
-    cat_sel = sf2.selectbox("Categoria", cats, key="sim_cat")
-    if cat_sel != "Todas":
-        df_f = df_f[df_f["categoria"] == cat_sel]
+    cats = sorted(df_f["categoria"].dropna().unique())
+    cat_sel = sf2.multiselect("Categoria", cats, default=[], key="sim_cat",
+                              placeholder="Todas las categorias")
+    if cat_sel:
+        df_f = df_f[df_f["categoria"].isin(cat_sel)]
 
     prods = ["Todos"] + sorted(df_f["producto"].dropna().unique())
     prod_sel = sf3.selectbox("Producto", prods, key="sim_prod")

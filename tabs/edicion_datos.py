@@ -138,9 +138,10 @@ def render_edicion_datos():
     sem_sel = fc1.selectbox("Semana", semanas, index=len(semanas) - 1, key="ed_sem")
     df_sem  = df[df["semana"] == sem_sel].copy()
 
-    cats    = ["Todas"] + sorted(df_sem["categoria"].dropna().unique())
-    cat_sel = fc2.selectbox("Categoria", cats, key="ed_cat")
-    df_cat  = df_sem if cat_sel == "Todas" else df_sem[df_sem["categoria"] == cat_sel]
+    cats    = sorted(df_sem["categoria"].dropna().unique())
+    cat_sel = fc2.multiselect("Categoria", cats, default=[], key="ed_cat",
+                              placeholder="Todas las categorias")
+    df_cat  = df_sem if not cat_sel else df_sem[df_sem["categoria"].isin(cat_sel)]
 
     provincias = sorted(df_sem["provincia"].dropna().unique())
     sups_all   = sorted(df_sem["supermercado"].dropna().unique())
@@ -166,8 +167,8 @@ def render_edicion_datos():
     df_f = df_sem.copy()
     if prov_sel:
         df_f = df_f[df_f["provincia"].isin(prov_sel)]
-    if cat_sel != "Todas":
-        df_f = df_f[df_f["categoria"] == cat_sel]
+    if cat_sel:
+        df_f = df_f[df_f["categoria"].isin(cat_sel)]
     if prod_sel != "Todos":
         df_f = df_f[df_f["producto"] == prod_sel]
     if pres_sel != "Todas":
@@ -356,7 +357,7 @@ def render_edicion_datos():
         df_ag["_row_idx_"]   = range(len(df_ag))
 
         # Cache: preservar edits entre reruns; reiniciar cuando cambien los filtros
-        _ag_ck = (f"{sem_sel}|{sorted(prov_sel)}|{cat_sel}|{prod_sel}"
+        _ag_ck = (f"{sem_sel}|{sorted(prov_sel)}|{sorted(cat_sel)}|{prod_sel}"
                   f"|{pres_sel}|{sorted(sup_sel)}|{solo_marcados}|{solo_alertas}")
         if st.session_state.get("_ed_ag_ckey") != _ag_ck:
             st.session_state["_ed_ag_df"]   = df_ag.copy()

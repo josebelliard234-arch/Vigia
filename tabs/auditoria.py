@@ -109,8 +109,9 @@ def render_auditoria():
             semanas_ed = ["Todas"] + sorted([s for s in df_edits["semana_ed"].unique() if s])
             sem_sel = fe2.selectbox("Semana", semanas_ed, key="aud_e_sem")
 
-            cats_ed = ["Todas"] + sorted([c for c in df_edits["categoria_ed"].unique() if c])
-            cat_sel = fe3.selectbox("Categoria", cats_ed, key="aud_e_cat")
+            cats_ed = sorted([c for c in df_edits["categoria_ed"].unique() if c])
+            cat_sel = fe3.multiselect("Categoria", cats_ed, default=[], key="aud_e_cat",
+                                      placeholder="Todas")
 
             provs_ed = ["Todas"] + sorted([p for p in df_edits["provincia_ed"].unique() if p])
             prov_sel = fe4.selectbox("Provincia", provs_ed, key="aud_e_prov")
@@ -123,8 +124,8 @@ def render_auditoria():
                 df_fe = df_fe[df_fe["usuario"] == usr_sel]
             if sem_sel != "Todas":
                 df_fe = df_fe[df_fe["semana_ed"] == sem_sel]
-            if cat_sel != "Todas":
-                df_fe = df_fe[df_fe["categoria_ed"] == cat_sel]
+            if cat_sel:
+                df_fe = df_fe[df_fe["categoria_ed"].isin(cat_sel)]
             if prov_sel != "Todas":
                 df_fe = df_fe[df_fe["provincia_ed"] == prov_sel]
             if sup_sel != "Todos":
