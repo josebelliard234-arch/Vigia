@@ -1,5 +1,6 @@
 import hashlib
 import os
+import sqlite3 as _sqlite3
 import pandas as pd
 import streamlit as st
 from datetime import datetime
@@ -52,17 +53,23 @@ def init_auth_db():
         except Exception:
             pass
     else:
-        with get_conn() as con:
-            existing = {
-                row[1] for row in con.execute(text("PRAGMA table_info(usuarios)")).fetchall()
-            }
-            for col in ("username", "password_hash", "salt"):
-                if col not in existing:
-                    con.execute(text(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT"))
-            if "must_change_password" not in existing:
-                con.execute(text(
-                    "ALTER TABLE usuarios ADD COLUMN must_change_password INTEGER DEFAULT 1"
-                ))
+        # Para SQLite usamos sqlite3 nativo: SQLAlchemy engine.begin() no garantiza
+        # commit de DDL (ALTER TABLE) en todas las versiones de SQLite/SQLAlchemy.
+        _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datos.db")
+        _raw = _sqlite3.connect(_db_path)
+        _cur = _raw.cursor()
+        _existing = {row[1] for row in _cur.execute("PRAGMA table_info(usuarios)").fetchall()}
+        _ddl = [
+            ("username",             "TEXT"),
+            ("password_hash",        "TEXT"),
+            ("salt",                 "TEXT"),
+            ("must_change_password", "INTEGER DEFAULT 1"),
+        ]
+        for _col, _defn in _ddl:
+            if _col not in _existing:
+                _cur.execute(f"ALTER TABLE usuarios ADD COLUMN {_col} {_defn}")
+        _raw.commit()
+        _raw.close()
 
     try:
         with get_conn() as con:
