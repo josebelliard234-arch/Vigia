@@ -146,7 +146,8 @@ def render_edicion_datos():
     sups_all   = sorted(df_sem["supermercado"].dropna().unique())
 
     fd1, fd2 = st.columns(2)
-    prov_sel = fd1.multiselect("Provincia", provincias, default=[], key="ed_prov")
+    _prov_default = [p for p in ["Santo Domingo"] if p in provincias]
+    prov_sel = fd1.multiselect("Provincia", provincias, default=_prov_default, key="ed_prov")
     sup_sel  = fd2.multiselect("Supermercado", sups_all, default=[], key="ed_sup")
 
     if not sup_sel:
