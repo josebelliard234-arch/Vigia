@@ -589,17 +589,6 @@ hr, [data-testid="stDivider"] {{ border-color: {T["BORDER_SOFT"]} !important; }}
         inset 0 1px 0 rgba(255,255,255,0.65) !important;
 }}
 
-/* ── Sidebar user content — subtle glass card ────────────── */
-[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
-    background: rgba(255,255,255,0.38) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border-radius: 14px !important;
-    border: 1px solid rgba(203,213,225,0.45) !important;
-    margin: 6px 8px !important;
-    padding: 6px !important;
-}}
-
 /* ── Plotly chart container — glass panel ────────────────── */
 [data-testid="stPlotlyChart"] {{
     background: rgba(255,255,255,0.72) !important;
