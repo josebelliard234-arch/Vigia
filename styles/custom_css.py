@@ -537,8 +537,13 @@ hr, [data-testid="stDivider"] {{ border-color: {T["BORDER_SOFT"]} !important; }}
 
 /* File uploader */
 [data-testid="stFileUploadDropzone"] {{
-    background-color: {T["TABLE_ROW_ALT_BG"]} !important;
-    border-color: {T["INPUT_BORDER"]} !important;
+    background: rgba(255,255,255,0.68) !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 14px !important;
+}}
+[data-testid="stFileUploadDropzone"] * {{
+    color: #0F172A !important;
+    opacity: 1 !important;
 }}
 [data-testid="stNumberInput"] [data-baseweb="input"] {{
     background-color: {T["INPUT_BG"]} !important;
@@ -546,38 +551,114 @@ hr, [data-testid="stDivider"] {{ border-color: {T["BORDER_SOFT"]} !important; }}
 [data-testid="stRadio"] label,
 [data-testid="stCheckbox"] label {{ color: {T["TEXT_SECONDARY"]} !important; }}
 
-/* ── Sidebar navigation radio — light mode overrides ─────── */
-[data-testid="stSidebar"] [data-testid="stRadio"] label {{
-    color: #334155 !important;
-    font-weight: 600 !important;
+/* ── Sidebar navigation radio — light mode ──────────────────
+   Uses section[data-testid] for highest specificity. Forces
+   opacity:1 on * to defeat any BaseWeb opacity reduction.     */
+
+/* Container — kill any inherited opacity */
+section[data-testid="stSidebar"] [data-testid="stRadio"] {{
     opacity: 1 !important;
     background: transparent !important;
-    border-left: 3px solid transparent !important;
+    padding: 0 !important;
 }}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {{
+section[data-testid="stSidebar"] [data-testid="stRadio"] * {{
+    opacity: 1 !important;
+}}
+
+/* Widget label "NAVEGACION" — subtle uppercase heading */
+section[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stWidgetLabel"] p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stWidgetLabel"] label,
+section[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stWidgetLabel"] span {{
+    color: #475569 !important;
+    font-weight: 700 !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    opacity: 1 !important;
+}}
+
+/* Each nav option */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label {{
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    margin: 2px 0 !important;
+    background: transparent !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-left: 3px solid transparent !important;
+    opacity: 1 !important;
+}}
+
+/* Explicit color on all text children — not just inherit */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] label span {{
+    color: #334155 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+}}
+
+/* Hover */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {{
     background: rgba(255,255,255,0.72) !important;
     color: #0F172A !important;
 }}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {{
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover span {{
+    color: #0F172A !important;
+}}
+
+/* Selected */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {{
     background: #DBEAFE !important;
     color: #0F172A !important;
     font-weight: 800 !important;
     border-left: 3px solid #2563EB !important;
     box-shadow: 0 6px 16px rgba(37,99,235,0.12) !important;
 }}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) span {{
+    color: #0F172A !important;
+    font-weight: 800 !important;
+}}
+
 /* Expander radios (not nav): restore normal style in light mode */
-[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label {{
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label {{
     color: {T["TEXT_SECONDARY"]} !important;
     font-weight: 500 !important;
     background: transparent !important;
     border-left: none !important;
     box-shadow: none !important;
+    padding: 6px 10px !important;
 }}
-[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label:has(input:checked) {{
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label p,
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label span {{
+    color: {T["TEXT_SECONDARY"]} !important;
+    font-weight: 500 !important;
+    opacity: 1 !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label:has(input:checked) {{
     background: {T["PRIMARY_SOFT"]} !important;
     color: {T["PRIMARY"]} !important;
     border-left: none !important;
     box-shadow: none !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label:has(input:checked) p,
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label:has(input:checked) span {{
+    color: {T["PRIMARY"]} !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label > div:first-child {{
+    display: flex !important;
 }}
 
 /* ── st.metric — glass card ──────────────────────────────── */
@@ -847,16 +928,22 @@ html, body, [class*="css"] {{
 }}
 
 /* ── Sidebar navigation (st.radio styled as nav menu) ────────
-   Dark-mode base. Light-mode overrides are in _native below.  */
-[data-testid="stSidebar"] [data-testid="stRadio"],
-[data-testid="stSidebar"] [data-testid="stRadio"] > div {{
+   Dark-mode base. Light-mode overrides are in _native below.
+   Uses section[data-testid] prefix for maximum specificity and
+   forces opacity:1 on all children to defeat BaseWeb defaults. */
+section[data-testid="stSidebar"] [data-testid="stRadio"],
+section[data-testid="stSidebar"] [data-testid="stRadio"] > div {{
     background: transparent !important;
     background-color: transparent !important;
     padding: 0 !important;
     margin: 0 !important;
     gap: 0 !important;
+    opacity: 1 !important;
 }}
-[data-testid="stSidebar"] [data-testid="stRadio"] label {{
+section[data-testid="stSidebar"] [data-testid="stRadio"] * {{
+    opacity: 1 !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label {{
     padding: 10px 14px !important;
     border-radius: 12px !important;
     display: flex !important;
@@ -867,37 +954,48 @@ html, body, [class*="css"] {{
     margin: 2px 0 !important;
     background: transparent !important;
     color: #CBD5E1 !important;
-    font-weight: 400 !important;
+    font-weight: 500 !important;
     font-size: 13px !important;
     line-height: 1.4 !important;
     transition: background 0.15s ease, color 0.15s ease !important;
     border-left: 3px solid transparent !important;
+    opacity: 1 !important;
 }}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {{
+section[data-testid="stSidebar"] [data-testid="stRadio"] label p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] label span {{
+    color: #CBD5E1 !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+    opacity: 1 !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {{
     background: rgba(255,255,255,0.07) !important;
     color: #F1F5F9 !important;
 }}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {{
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover span {{
+    color: #F1F5F9 !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {{
     background: rgba(37,99,235,0.18) !important;
     color: #DBEAFE !important;
     font-weight: 700 !important;
     border-left: 3px solid #2563EB !important;
 }}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) span {{
+    color: #DBEAFE !important;
+    font-weight: 700 !important;
+}}
 /* Hide the BaseWeb radio circle in sidebar nav */
-[data-testid="stSidebar"] [data-testid="stRadio"] label > div:first-child {{
+section[data-testid="stSidebar"] [data-testid="stRadio"] label > div:first-child {{
     display: none !important;
 }}
-/* Text inside nav labels */
-[data-testid="stSidebar"] [data-testid="stRadio"] label p {{
-    font-size: 13px !important;
-    color: inherit !important;
-    font-weight: inherit !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.4 !important;
-}}
 /* Restore radio circle + normal style inside expanders (not nav) */
-[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label {{
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label {{
     padding: 6px 10px !important;
     border-radius: 8px !important;
     margin: 3px 0 !important;
@@ -907,10 +1005,15 @@ html, body, [class*="css"] {{
     border-left: none !important;
     background: transparent !important;
 }}
-[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label > div:first-child {{
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label p,
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label span {{
+    color: var(--text-secondary) !important;
+    font-weight: 400 !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label > div:first-child {{
     display: flex !important;
 }}
-[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label:has(input:checked) {{
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadio"] label:has(input:checked) {{
     background: rgba(37,99,235,0.15) !important;
     color: #93C5FD !important;
     border-left: none !important;

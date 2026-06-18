@@ -142,7 +142,7 @@ with st.sidebar:
         "Navegacion",
         _nav_options,
         key="main_nav",
-        label_visibility="collapsed",
+        label_visibility="visible",
     )
 
     st.divider()
