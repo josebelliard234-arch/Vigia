@@ -188,28 +188,10 @@ def get_mode() -> str:
 
 
 def light_df(df):
-    """Apply light-mode cell styling for st.dataframe when in light mode.
+    """Pass-through wrapper — tables use dark data surfaces in both modes.
 
-    Accepts a pd.DataFrame or an existing pd.Styler (e.g. df.style.format(...)).
-    In dark mode returns df unchanged so no alternation is wasted.
-    GDG reads per-cell background-color from the Styler and renders it on canvas.
+    GDG renders with Streamlit's native dark theme which is correct on the
+    dark table containers set in custom_css.py. Any Styler format() rules
+    already applied to df are preserved; only row-color styling is skipped.
     """
-    import pandas as pd
-    if get_mode() != "light":
-        return df
-
-    if type(df).__name__ == "Styler":
-        styler = df
-    elif isinstance(df, pd.DataFrame):
-        styler = df.style
-    else:
-        return df
-
-    counter = [0]
-
-    def _row(row):
-        bg = "#FFFFFF" if counter[0] % 2 == 0 else "#F8FAFC"
-        counter[0] += 1
-        return [f"background-color: {bg}; color: #1E293B; font-weight: 500;"] * len(row)
-
-    return styler.apply(_row, axis=1)
+    return df

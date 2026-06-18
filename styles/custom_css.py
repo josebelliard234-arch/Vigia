@@ -280,11 +280,9 @@ textarea::placeholder {{
 }}
 
 /* ══════════════════════════════════════════════════════════════
-   DATAFRAME + HTML TABLES — light mode
-   GDG renders cells on canvas; per-cell colors come from the pandas
-   Styler (applied via light_df() helper in styles/theme.py).
-   These CSS rules cover: container chrome, HTML table fallback,
-   and any <table> injected via st.markdown.
+   DATAFRAME + HTML TABLES — dark data surfaces
+   Tables use #0F172A containers so GDG's native dark-theme rendering
+   stays visible. light_df() is a no-op. AgGrid keeps ag-theme-alpine.
    ══════════════════════════════════════════════════════════════ */
 
 /* ══════════════════════════════════════════════════════════════
@@ -421,67 +419,64 @@ textarea::placeholder {{
 }}
 
 /* ══════════════════════════════════════════════════════════════
-   GDG CANVAS (st.dataframe / st.data_editor) — light mode
-   These rules control the CONTAINER frame and empty-scroll areas.
-   Per-cell colors come from pandas Styler via light_df() helper.
-   GDG renders cell content on canvas (JS) — CSS cannot override
-   individual cell colors, only the container/scrollbar chrome.
+   GDG CANVAS (st.dataframe / st.data_editor) — dark data surface
+   Tables use dark backgrounds so GDG's native dark-theme rendering
+   stays visible. light_df() is a no-op; Styler white cells omitted.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── st.dataframe container ─────────────────────────────── */
+/* ── st.dataframe — dark data surface ───────────────────── */
 [data-testid="stDataFrame"] {{
-    border: 1px solid #D8E0EA !important;
+    border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    background-color: #FFFFFF !important;
+    background-color: #0F172A !important;
 }}
 [data-testid="stDataFrame"] > div {{
-    background-color: #FFFFFF !important;
+    background-color: #0F172A !important;
     border-radius: 14px !important;
 }}
 
-/* ── st.data_editor container (simulacion.py) ───────────── */
+/* ── st.data_editor — dark data surface ─────────────────── */
 [data-testid="stDataEditor"] {{
-    border: 1px solid #D8E0EA !important;
+    border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    background-color: #FFFFFF !important;
+    background-color: #0F172A !important;
 }}
 [data-testid="stDataEditor"] > div {{
-    background-color: #FFFFFF !important;
+    background-color: #0F172A !important;
     border-radius: 14px !important;
 }}
 
-/* GDG canvas scroller — empty-area background */
+/* GDG canvas scroller — dark data surface */
 .dvn-scroller {{
-    background-color: #FFFFFF !important;
+    background-color: #0F172A !important;
 }}
 [data-testid="stDataFrame"] canvas,
 [data-testid="stDataEditor"] canvas {{
-    background-color: #FFFFFF !important;
+    background-color: #0F172A !important;
 }}
 
 /* ══════════════════════════════════════════════════════════════
-   HTML <table> — st.table(), Styler HTML export, st.markdown
-   These targets CSS-styled HTML tables (not GDG canvas).
-   Covers: stMarkdownContainer, element-container, stTable.
+   HTML <table> — dark data surface
+   st.table(), Styler HTML export, st.markdown.
    ══════════════════════════════════════════════════════════════ */
 [data-testid="stTable"] table,
 [data-testid="stTable"] {{
-    border: 1px solid #D8E0EA !important;
+    border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    background-color: #FFFFFF !important;
-    color: #1E293B !important;
+    background-color: #0F172A !important;
+    color: #F8FAFC !important;
 }}
 .stDataFrame table,
 [data-testid="stDataFrame"] table,
 [data-testid="stMarkdownContainer"] table,
 [data-testid="stTable"] table,
 .element-container table {{
-    background: #FFFFFF !important;
-    color: #1E293B !important;
-    border: 1px solid #D8E0EA !important;
+    background: #0F172A !important;
+    color: #F8FAFC !important;
+    border: 1px solid #334155 !important;
     border-radius: 12px !important;
     overflow: hidden !important;
     width: 100% !important;
@@ -498,10 +493,10 @@ textarea::placeholder {{
 [data-testid="stTable"] th,
 .element-container thead,
 .element-container th {{
-    background-color: #EAF1FB !important;
-    color: #0F172A !important;
+    background-color: #1E293B !important;
+    color: #F8FAFC !important;
     font-weight: 800 !important;
-    border-bottom: 2px solid #CBD5E1 !important;
+    border-bottom: 2px solid #334155 !important;
     padding: 0.55rem 0.75rem !important;
     white-space: nowrap !important;
 }}
@@ -511,9 +506,9 @@ textarea::placeholder {{
 [data-testid="stMarkdownContainer"] td,
 [data-testid="stTable"] td,
 .element-container td {{
-    background-color: #FFFFFF !important;
-    color: #1E293B !important;
-    border-bottom: 1px solid #E2E8F0 !important;
+    background-color: #0F172A !important;
+    color: #F8FAFC !important;
+    border-bottom: 1px solid #334155 !important;
     font-weight: 500 !important;
     padding: 0.45rem 0.75rem !important;
 }}
@@ -522,14 +517,25 @@ textarea::placeholder {{
 [data-testid="stDataFrame"] tr:nth-child(even) td,
 [data-testid="stMarkdownContainer"] tr:nth-child(even) td,
 [data-testid="stTable"] tr:nth-child(even) td {{
-    background-color: #F8FAFC !important;
+    background-color: #111827 !important;
 }}
 /* Hover */
 .stDataFrame tr:hover td,
 [data-testid="stDataFrame"] tr:hover td,
 [data-testid="stMarkdownContainer"] tr:hover td,
 [data-testid="stTable"] tr:hover td {{
-    background-color: #EFF6FF !important;
+    background-color: #1E293B !important;
+}}
+/* p/span inside dark table cells — specificity (0,1,2) beats the
+   general stMarkdownContainer p rule (0,1,1) regardless of order */
+[data-testid="stMarkdownContainer"] td p,
+[data-testid="stMarkdownContainer"] th p,
+[data-testid="stMarkdownContainer"] td span:not([style]),
+[data-testid="stMarkdownContainer"] th span:not([style]),
+[data-testid="stTable"] td p,
+[data-testid="stTable"] th p {{
+    color: #F8FAFC !important;
+    font-weight: 500 !important;
 }}
 
 /* ── LABELS ──────────────────────────────────────────────── */
