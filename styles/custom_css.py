@@ -92,60 +92,195 @@ section[data-testid="stSidebar"],
     color: {T["PRIMARY"]} !important;
 }}
 
-/* Select + MultiSelect */
+/* ══════════════════════════════════════════════════════════════
+   FORM CONTROLS — light mode
+   BaseWeb renders the dropdown popover at <body> level (not inside
+   the widget), so selectors here MUST be global, not scoped.
+   All values are hardcoded (no CSS vars) to avoid resolution issues.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── SELECT / MULTISELECT — closed state ─────────────────── */
+[data-baseweb="select"] {{
+    border-radius: 12px !important;
+}}
+/* Control container (border + background visible when closed) */
 [data-baseweb="select"] > div {{
-    background-color: {T["INPUT_BG"]} !important;
-    border-color: {T["INPUT_BORDER"]} !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 12px !important;
+    color: #0F172A !important;
+    min-height: 42px !important;
 }}
-[data-baseweb="select"] > div > div,
+[data-baseweb="select"] > div:focus-within {{
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.14) !important;
+}}
+/* All inner divs of the closed control */
+[data-baseweb="select"] > div > div {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}}
 [data-baseweb="select"] > div > div > div {{
-    background-color: {T["INPUT_BG"]} !important;
-    color: {T["TEXT_PRIMARY"]} !important;
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    font-weight: 600 !important;
 }}
-[data-baseweb="select"] div[class],
-[data-baseweb="select"] span {{
-    color: {T["TEXT_PRIMARY"]} !important;
+/* Catch-all: any span or div[class] inside select */
+[data-baseweb="select"] span,
+[data-baseweb="select"] div[class] {{
+    color: #0F172A !important;
 }}
-
-/* Text / number inputs */
-[data-baseweb="base-input"] {{
-    background-color: {T["INPUT_BG"]} !important;
+/* Search input inside select (for searchable selects) */
+[data-baseweb="select"] input {{
+    background-color: transparent !important;
+    color: #0F172A !important;
+    caret-color: #2563EB !important;
 }}
-[data-baseweb="base-input"] input,
-[data-baseweb="input"] input,
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {{
-    background-color: {T["INPUT_BG"]} !important;
-    color: {T["TEXT_PRIMARY"]} !important;
-}}
-textarea {{
-    background-color: {T["INPUT_BG"]} !important;
-    color: {T["TEXT_PRIMARY"]} !important;
+[data-baseweb="select"] input::placeholder {{
+    color: #94A3B8 !important;
+    font-weight: 500 !important;
 }}
 
-/* Dropdown popover */
+/* ── DROPDOWN POPOVER (rendered at body level) ───────────── */
+/* Outer popover shell */
+[data-baseweb="popover"] > div,
+[data-baseweb="popover"] {{
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 16px 36px rgba(15,23,42,0.14) !important;
+    overflow: hidden !important;
+}}
+/* Menu / listbox inside popover */
+[data-baseweb="popover"] [data-baseweb="menu"],
+[data-baseweb="popover"] ul,
+[data-baseweb="menu"],
 div[role="listbox"],
 ul[data-baseweb="menu"] {{
-    background-color: {T["INPUT_BG"]} !important;
-    border-color: {T["BORDER"]} !important;
+    background-color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 0 !important;
 }}
+/* Every option row */
+[data-baseweb="popover"] li[role="option"],
 li[role="option"] {{
-    color: {T["TEXT_PRIMARY"]} !important;
-    background-color: {T["INPUT_BG"]} !important;
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    font-weight: 500 !important;
 }}
-li[role="option"]:hover {{ background-color: {T["TABLE_ROW_ALT_BG"]} !important; }}
-li[aria-selected="true"] {{ background-color: {T["PRIMARY_SOFT"]} !important; color: {T["PRIMARY"]} !important; }}
+[data-baseweb="popover"] li[role="option"] span,
+li[role="option"] span {{
+    color: #0F172A !important;
+}}
+/* Hover */
+[data-baseweb="popover"] li[role="option"]:hover,
+li[role="option"]:hover {{
+    background-color: #EFF6FF !important;
+    color: #0F172A !important;
+}}
+/* Selected option */
+[data-baseweb="popover"] li[aria-selected="true"],
+li[aria-selected="true"] {{
+    background-color: #DBEAFE !important;
+    color: #1D4ED8 !important;
+    font-weight: 700 !important;
+}}
+[data-baseweb="popover"] li[aria-selected="true"] span,
+li[aria-selected="true"] span {{
+    color: #1D4ED8 !important;
+}}
 
-/* Multiselect tags */
+/* ── MULTISELECT TAGS ────────────────────────────────────── */
 [data-baseweb="tag"] {{
-    background-color: {T["PRIMARY_SOFT"]} !important;
-    border-color: {T["PRIMARY"]}44 !important;
+    background-color: #DBEAFE !important;
+    border: 1px solid #BFDBFE !important;
+    border-radius: 8px !important;
+    color: #1D4ED8 !important;
 }}
-[data-baseweb="tag"] span {{ color: {T["PRIMARY"]} !important; }}
+[data-baseweb="tag"] span {{
+    color: #1D4ED8 !important;
+    font-weight: 700 !important;
+}}
+/* Close (×) button on tag */
+[data-baseweb="tag"] [role="button"],
+[data-baseweb="tag"] button {{
+    color: #1D4ED8 !important;
+    opacity: 0.8;
+}}
+[data-baseweb="tag"] [role="button"]:hover,
+[data-baseweb="tag"] button:hover {{
+    opacity: 1;
+}}
 
-/* Labels + body text */
-label {{
-    color: {T["TEXT_PRIMARY"]} !important;
+/* ── TEXT INPUT ──────────────────────────────────────────── */
+[data-baseweb="base-input"] {{
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 12px !important;
+    overflow: visible !important;
+}}
+[data-baseweb="base-input"]:focus-within {{
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.14) !important;
+}}
+[data-baseweb="base-input"] > div {{
+    background-color: #FFFFFF !important;
+}}
+[data-baseweb="base-input"] input,
+[data-baseweb="input"] input {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
     font-weight: 600 !important;
+    caret-color: #2563EB !important;
+}}
+[data-baseweb="base-input"] input::placeholder,
+[data-baseweb="input"] input::placeholder {{
+    color: #94A3B8 !important;
+    font-weight: 500 !important;
+}}
+/* Catch-all for native inputs not wrapped by baseweb */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]) {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}}
+input:not([type="checkbox"]):not([type="radio"])::placeholder {{
+    color: #94A3B8 !important;
+}}
+
+/* ── TEXTAREA ────────────────────────────────────────────── */
+[data-baseweb="textarea"],
+[data-baseweb="textarea"] > div {{
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 12px !important;
+}}
+[data-baseweb="textarea"]:focus-within {{
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.14) !important;
+}}
+textarea {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    font-weight: 500 !important;
+}}
+textarea::placeholder {{
+    color: #94A3B8 !important;
+    font-weight: 400 !important;
+}}
+
+/* ── NUMBER INPUT ────────────────────────────────────────── */
+[data-testid="stNumberInput"] [data-baseweb="input"],
+[data-testid="stNumberInput"] [data-baseweb="base-input"] {{
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 12px !important;
+}}
+
+/* ── LABELS ──────────────────────────────────────────────── */
+label {{
+    color: #0F172A !important;
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
 }}
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stMarkdownContainer"] li,
