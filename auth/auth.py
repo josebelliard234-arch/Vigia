@@ -274,8 +274,8 @@ def _render_login():
         st.markdown(
             "<div style='text-align:center;margin-bottom:1.5rem;'>"
             "<span style='font-size:2.4rem;'>📊</span>"
-            "<h2 style='margin:.4rem 0 .2rem 0;font-weight:800;'>Monitor de Precios</h2>"
-            "<p style='color:#94A3B8;font-size:.9rem;margin:0;'>DOSAC · Inicia sesion para continuar</p>"
+            "<h2 style='margin:.4rem 0 .2rem 0;font-weight:800;color:var(--t0);'>Monitor de Precios</h2>"
+            "<p style='color:var(--t2);font-size:.9rem;margin:0;'>DOSAC · Inicia sesion para continuar</p>"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -395,10 +395,10 @@ def render_sidebar_user():
 
     st.markdown(
         f"<div style='padding:.55rem .75rem;border-radius:12px;"
-        f"background:rgba(30,41,59,0.85);border:1px solid rgba(148,163,184,0.16);"
+        f"background:var(--bg-card);border:1px solid var(--bdm);"
         f"margin-bottom:.6rem;'>"
-        f"<div style='font-size:.72rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;'>Usuario activo</div>"
-        f"<div style='font-size:.95rem;font-weight:700;color:#F8FAFC;margin-top:.1rem;'>{username}</div>"
+        f"<div style='font-size:.72rem;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;'>Usuario activo</div>"
+        f"<div style='font-size:.95rem;font-weight:700;color:var(--t0);margin-top:.1rem;'>{username}</div>"
         f"<div style='margin-top:.15rem;'>"
         f"<span style='background:{rol_color}22;color:{rol_color};font-size:.7rem;font-weight:700;"
         f"padding:.12rem .45rem;border-radius:999px;border:1px solid {rol_color}44;'>{rol}</span>"

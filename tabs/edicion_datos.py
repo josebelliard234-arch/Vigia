@@ -345,7 +345,7 @@ def render_edicion_datos():
         if not modo_ampliado:
             st.markdown(
                 "#### Precios por supermercado  "
-                "<small style='font-weight:normal;color:#94A3B8;'>"
+                "<small style='font-weight:normal;color:var(--t2);'>"
                 "clic para editar · Tab/Enter para navegar · Ctrl+Z para deshacer</small>",
                 unsafe_allow_html=True,
             )
@@ -753,15 +753,15 @@ def render_edicion_datos():
                     col_card, col_del = st.columns([6, 1])
                     with col_card:
                         st.markdown(
-                            f"<div style='padding:.4rem .75rem;border:1px solid rgba(148,163,184,0.12);"
-                            f"border-radius:8px;background:rgba(15,23,42,0.5);"
+                            f"<div style='padding:.4rem .75rem;border:1px solid var(--bd);"
+                            f"border-radius:8px;background:var(--bg-subtle);"
                             f"display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;'>"
                             f"<span style='font-size:1.1rem;'>{emoji}</span>"
-                            f"<span style='color:#F8FAFC;font-size:.82rem;font-weight:600;'>{prod_r}</span>"
-                            f"<span style='color:#94A3B8;font-size:.78rem;'>{pres_r}</span>"
+                            f"<span style='color:var(--t0);font-size:.82rem;font-weight:600;'>{prod_r}</span>"
+                            f"<span style='color:var(--t2);font-size:.78rem;'>{pres_r}</span>"
                             f"<span style='color:#2563EB;font-size:.78rem;font-weight:600;'>{sup_r}</span>"
-                            + (f"<span style='color:#CBD5E1;font-size:.75rem;font-style:italic;'>\"{nota_r}\"</span>" if nota_r else "")
-                            + f"<span style='color:#475569;font-size:.72rem;margin-left:auto;'>{user_r} · {ts_r}</span>"
+                            + (f"<span style='color:var(--t1);font-size:.75rem;font-style:italic;'>\"{nota_r}\"</span>" if nota_r else "")
+                            + f"<span style='color:var(--t3);font-size:.72rem;margin-left:auto;'>{user_r} · {ts_r}</span>"
                             f"</div>",
                             unsafe_allow_html=True,
                         )

@@ -19,3 +19,12 @@ YELLOW = "#D97706"   # Ámbar profundo
 GRAY   = "#4B5563"   # Gris pizarra
 
 pio.templates.default = "plotly_dark"
+
+
+def get_mode() -> str:
+    """Returns 'dark' or 'light' based on session state."""
+    try:
+        import streamlit as st
+        return st.session_state.get("theme_mode", "dark")
+    except Exception:
+        return "dark"

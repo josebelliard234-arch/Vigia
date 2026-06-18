@@ -146,10 +146,10 @@ def render_usuarios():
     ]:
         col.markdown(
             f'<div style="padding:.85rem 1rem 1rem 1rem;border-radius:14px;'
-            f'background:rgba(15,23,42,0.75);border:1px solid rgba(148,163,184,0.13);">'
+            f'background:var(--bg-card);border:1px solid var(--bd);">'
             f'<div style="font-size:1.4rem;margin-bottom:.2rem;">{icon}</div>'
             f'<div style="font-size:2rem;font-weight:800;color:{color};line-height:1;">{val}</div>'
-            f'<div style="font-size:.77rem;color:#94A3B8;margin-top:.18rem;">{label}</div>'
+            f'<div style="font-size:.77rem;color:var(--t2);margin-top:.18rem;">{label}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -172,9 +172,9 @@ def render_usuarios():
         st.markdown(
             '<div style="display:flex;align-items:center;gap:.5rem;'
             'margin-bottom:.5rem;padding:.6rem .85rem;border-radius:10px;'
-            'background:rgba(15,23,42,0.5);border:1px solid rgba(148,163,184,0.1);">'
+            'background:var(--bg-subtle);border:1px solid var(--bd);">'
             '<span style="font-size:.95rem;">🕐</span>'
-            '<span style="font-weight:700;font-size:.88rem;color:#F8FAFC;">'
+            '<span style="font-weight:700;font-size:.88rem;color:var(--t0);">'
             'Últimos 5 usuarios activos</span>'
             '</div>',
             unsafe_allow_html=True,
@@ -194,13 +194,13 @@ def render_usuarios():
             rc[0].markdown(_avatar(nom_r, 30), unsafe_allow_html=True)
             rc[1].markdown(
                 f'<div style="line-height:1.35;padding:.05rem 0;">'
-                f'<span style="font-size:.84rem;font-weight:600;color:#F8FAFC;">{nom_r}</span><br>'
+                f'<span style="font-size:.84rem;font-weight:600;color:var(--t0);">{nom_r}</span><br>'
                 f'<span style="font-size:.71rem;color:#2563EB;font-family:monospace;">@{row["usuario"]}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
             rc[2].markdown(
-                f'<div style="font-size:.79rem;color:#94A3B8;padding:.05rem 0;">{row["timestamp"]}</div>',
+                f'<div style="font-size:.79rem;color:var(--t2);padding:.05rem 0;">{row["timestamp"]}</div>',
                 unsafe_allow_html=True,
             )
             rc[3].markdown(_badge(rol_r), unsafe_allow_html=True)
@@ -283,7 +283,7 @@ def render_usuarios():
         rc[0].markdown(_avatar(nombre or "?", 34), unsafe_allow_html=True)
         rc[1].markdown(
             f'<div style="line-height:1.35;padding:.12rem 0;">'
-            f'<span style="font-size:.87rem;font-weight:600;color:#F8FAFC;">{nombre}</span>'
+            f'<span style="font-size:.87rem;font-weight:600;color:var(--t0);">{nombre}</span>'
             + (f'<span style="margin-left:.35rem;font-size:.64rem;background:#172554;'
                f'color:#93C5FD;padding:.04rem .28rem;border-radius:4px;font-weight:700;">TÚ</span>'
                if es_yo else "")

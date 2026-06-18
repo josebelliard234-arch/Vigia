@@ -23,7 +23,7 @@ def _card_cat(nombre, pct, n_prods, n_sub, n_baj, size="normal"):
         f'text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;">{nombre}</div>'
         f'<div style="font-size:{val_fs};font-weight:800;color:{color};line-height:1;">'
         f'{icon} {sign}{pct:.1f}%</div>'
-        f'<div style="font-size:.7rem;color:#475569;margin-top:.3rem;">'
+        f'<div style="font-size:.7rem;color:var(--t3);margin-top:.3rem;">'
         f'{n_prods} productos&nbsp;&nbsp;'
         f'<span style="color:{RED};">▲{n_sub}</span>&nbsp;'
         f'<span style="color:{GREEN};">▼{n_baj}</span>'
@@ -35,7 +35,7 @@ def _card_cat(nombre, pct, n_prods, n_sub, n_baj, size="normal"):
 def _kpi_mini(label, value, color="#94A3B8", badge=""):
     return (
         f'<div style="padding:.7rem .9rem;border-radius:11px;'
-        f'background:rgba(15,23,42,0.65);border:1px solid {color}33;'
+        f'background:var(--bg-card);border:1px solid {color}33;'
         f'border-left:3px solid {color};">'
         f'<div style="font-size:.67rem;color:{color}99;font-weight:700;'
         f'text-transform:uppercase;letter-spacing:.06em;">{label}</div>'
@@ -121,8 +121,8 @@ def render_inicio(ctx):
 
     st.markdown(
         '<div style="margin-bottom:.75rem;">'
-        '<span style="font-size:1.35rem;font-weight:800;color:#F8FAFC;">📊 Panel de Control</span>'
-        '<span style="font-size:.8rem;color:#64748B;margin-left:.7rem;">'
+        '<span style="font-size:1.35rem;font-weight:800;color:var(--t0);">📊 Panel de Control</span>'
+        '<span style="font-size:.8rem;color:var(--t3);margin-left:.7rem;">'
         'Situación de precios por categoría</span>'
         '</div>',
         unsafe_allow_html=True,
@@ -209,9 +209,9 @@ def render_inicio(ctx):
     m4.markdown(_kpi_mini("Estables",              str(n_estbl),       "#64748B"), unsafe_allow_html=True)
 
     st.markdown(
-        f'<div style="font-size:.73rem;color:#475569;margin:.4rem 0 .6rem 0;">'
-        f'Comparando <b style="color:#F8FAFC;">{sa_lbl_l}</b> vs '
-        f'<b style="color:#F8FAFC;">{ref_lbl_l}</b>'
+        f'<div style="font-size:.73rem;color:var(--t3);margin:.4rem 0 .6rem 0;">'
+        f'Comparando <b style="color:var(--t0);">{sa_lbl_l}</b> vs '
+        f'<b style="color:var(--t0);">{ref_lbl_l}</b>'
         f' · {n_prods_total} productos con datos en ambas semanas'
         f'</div>',
         unsafe_allow_html=True,
@@ -239,27 +239,34 @@ def render_inicio(ctx):
         ),
         text=[f"{'+' if v >= 0 else ''}{v:.1f}%" for v in df_chart["pct_cambio"]],
         textposition="outside",
-        textfont=dict(size=11, color=TEXT_SECONDARY, family="Inter"),
+        textfont=dict(size=11, family="Inter"),
     ))
+
+    from components.charts import _is_light as _chart_light
+    _light = _chart_light()
+    _tc   = "#1E293B" if _light else TEXT_SECONDARY
+    _tm   = "#64748B" if _light else TEXT_MUTED
+    _zc   = "rgba(15,23,42,0.20)" if _light else "rgba(248,250,252,0.35)"
+    _tc_title = "#0F172A" if _light else TEXT_MAIN
 
     max_abs = df_chart["pct_cambio"].abs().max() or 1
     fig.update_layout(
         title=dict(
             text=f"Variación de precios por categoría — {sa_lbl} vs {ref_lbl} ({periodo_lbl})",
-            font=dict(size=13, color=TEXT_MAIN, family="Inter"), x=0,
+            font=dict(size=13, color=_tc_title, family="Inter"), x=0,
         ),
         height=max(320, len(df_chart) * 34),
         margin=dict(l=10, r=80, t=50, b=30),
         bargap=0.28,
         xaxis=dict(
             zeroline=True,
-            zerolinecolor="rgba(248,250,252,0.35)",
+            zerolinecolor=_zc,
             zerolinewidth=2,
             range=[-(max_abs * 1.35), max_abs * 1.35],
             ticksuffix="%",
-            tickfont=dict(size=10, color=TEXT_MUTED),
+            tickfont=dict(size=10, color=_tm),
         ),
-        yaxis=dict(tickfont=dict(size=11, color=TEXT_SECONDARY)),
+        yaxis=dict(tickfont=dict(size=11, color=_tc)),
     )
     apply_dark_layout(fig)
     st.plotly_chart(fig, use_container_width=True)
@@ -310,7 +317,7 @@ def render_inicio(ctx):
         f'text-transform:uppercase;letter-spacing:.05em;">Semana actual</div>'
         f'<div style="font-size:1rem;font-weight:800;color:#2563EB;margin:.15rem 0;">'
         f'{sa_lbl}{_fuente_badge(fuente_act)}</div>'
-        f'<div style="font-size:.72rem;color:#475569;">{sa_lbl_l}</div>'
+        f'<div style="font-size:.72rem;color:var(--t3);">{sa_lbl_l}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -321,7 +328,7 @@ def render_inicio(ctx):
         f'text-transform:uppercase;letter-spacing:.05em;">Semana de referencia</div>'
         f'<div style="font-size:1rem;font-weight:800;color:#6D28D9;margin:.15rem 0;">'
         f'{ref_lbl}</div>'
-        f'<div style="font-size:.72rem;color:#475569;">{ref_lbl_l}</div>'
+        f'<div style="font-size:.72rem;color:var(--t3);">{ref_lbl_l}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -334,7 +341,7 @@ def render_inicio(ctx):
         f'text-transform:uppercase;letter-spacing:.05em;">Cobertura semana actual</div>'
         f'<div style="font-size:1rem;font-weight:800;color:#EA580C;margin:.15rem 0;">'
         f'{n_reg:,} registros</div>'
-        f'<div style="font-size:.72rem;color:#475569;">{n_sups} supermercados</div>'
+        f'<div style="font-size:.72rem;color:var(--t3);">{n_sups} supermercados</div>'
         f'</div>',
         unsafe_allow_html=True,
     )

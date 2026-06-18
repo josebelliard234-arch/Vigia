@@ -31,7 +31,7 @@ from styles.theme import (
     TEXT_MAIN, TEXT_SECONDARY, TEXT_MUTED,
     BLUE, GREEN, RED, YELLOW, GRAY,
 )
-from styles.custom_css import apply_css
+from styles.custom_css import apply_css, inject_theme_script
 
 from sqlalchemy import text
 from data.database import (
@@ -78,6 +78,7 @@ from auth.auth import (
 # CSS + INICIALIZACION
 # ============================================================
 apply_css()
+inject_theme_script()
 init_db()
 init_auth_db()
 
@@ -97,7 +98,17 @@ with st.sidebar:
 
     render_sidebar_user()
 
-    st.markdown("### 📊 Centro de Control")
+    # ── Theme toggle ──────────────────────────────────────────
+    _mode = st.session_state.get("theme_mode", "dark")
+    _tc1, _tc2 = st.columns([5, 1])
+    _tc1.markdown("### 📊 Centro de Control")
+    if _tc2.button(
+        "☀️" if _mode == "dark" else "🌙",
+        key="btn_theme_toggle",
+        help="Cambiar a modo claro" if _mode == "dark" else "Cambiar a modo oscuro",
+    ):
+        st.session_state["theme_mode"] = "light" if _mode == "dark" else "dark"
+        st.rerun()
     if DEMO_MODE:
         st.info("Modo demo: datos precargados. Carga, eliminacion y limpieza desactivadas.")
 
@@ -240,13 +251,13 @@ with st.sidebar:
             for semana_m, nombre_m, fecha_m, registros_m in monitoreos:
                 st.markdown(
                     f"<div style='padding:.55rem .7rem;margin-bottom:.5rem;"
-                    f"border:1px solid rgba(148,163,184,0.18);border-radius:12px;"
-                    f"background:rgba(30,41,59,0.55);'>"
-                    f"<div style='font-size:.82rem;color:#F8FAFC;font-weight:600;"
+                    f"border:1px solid var(--bdm);border-radius:12px;"
+                    f"background:var(--bg-subtle);'>"
+                    f"<div style='font-size:.82rem;color:var(--t0);font-weight:600;"
                     f"word-break:break-word;'>{nombre_m or 'Archivo'}</div>"
                     f"<div style='font-size:.92rem;color:#2563EB;font-weight:700;"
                     f"margin-top:.15rem;'>{fmt_sem(semana_m, 'corta')}</div>"
-                    f"<div style='font-size:.72rem;color:#94A3B8;margin-top:.1rem;'>"
+                    f"<div style='font-size:.72rem;color:var(--t2);margin-top:.1rem;'>"
                     f"{registros_m:,} registros · {fecha_m}</div>"
                     f"</div>",
                     unsafe_allow_html=True,
@@ -514,10 +525,10 @@ elif section == "Simulacion Temporal":
 # ============================================================
 st.divider()
 st.markdown('''
-<div style="text-align:center;color:#475569;font-size:0.78rem;padding:1rem 0 0.5rem 0;
-border-top:1px solid rgba(148,163,184,0.10);margin-top:1rem;">
+<div style="text-align:center;color:var(--t3);font-size:0.78rem;padding:1rem 0 0.5rem 0;
+border-top:1px solid var(--bd);margin-top:1rem;">
     Visualizacion de Datos - Supermercados Santo Domingo &nbsp;|&nbsp; DOSAC
     &nbsp;|&nbsp; Datos DGDC
-    <br><span style="font-size:0.72rem;color:#334155;">Jose Belliard</span>
+    <br><span style="font-size:0.72rem;color:var(--t2);">Jose Belliard</span>
 </div>
 ''', unsafe_allow_html=True)

@@ -8,13 +8,7 @@ from utils.dates import fmt_sem, semana_label_a_datetime, ordenar_semanas_iso
 from utils.formatting import fmt_rdp, fmt_pct
 from utils.transformations import proyeccion_despues_de_semana_corte
 from data.loader import parsear_fecha_usuario
-
-
-# ── colores del tema oscuro ──────────────────────────────────
-_BG       = "rgba(15,23,42,1)"
-_BG_PAPER = "rgba(15,23,42,0)"
-_CARD     = "#273449"
-_GRID     = "rgba(148,163,184,0.18)"
+from components.charts import plot_bg, _is_light as _chart_light
 _MESES    = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
              "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
@@ -316,10 +310,10 @@ def render_historial(ctx):
             font=dict(size=12, color=TEXT_SECONDARY),
         ),
         margin=dict(l=70, r=40, t=70, b=145),
-        plot_bgcolor=_BG,
-        paper_bgcolor=_BG_PAPER,
+        plot_bgcolor=plot_bg(1.0),
+        paper_bgcolor=plot_bg(0.0),
         font=dict(color=TEXT_SECONDARY, family="Inter"),
-        hoverlabel=dict(bgcolor=_CARD, font_size=12, font_family="Inter"),
+        hoverlabel=dict(bgcolor=plot_bg(0.9), font_size=12, font_family="Inter"),
         uirevision=f"{prod_sel}_{pres_sel}",
     )
 
@@ -338,7 +332,7 @@ def render_historial(ctx):
         title="Precio promedio (RD$)",
         tickprefix="RD$ ",
         tickformat=",.0f",
-        gridcolor=_GRID,
+        gridcolor="rgba(15,23,42,0.08)" if _chart_light() else "rgba(148,163,184,0.18)",
         zeroline=False,
         tickfont=dict(size=10, color=TEXT_SECONDARY),
     )

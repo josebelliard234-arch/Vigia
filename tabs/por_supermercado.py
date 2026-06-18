@@ -8,6 +8,7 @@ from styles.theme import (
 )
 from utils.dates import fmt_sem
 from utils.formatting import fmt_rdp, fmt_pct
+from components.charts import plot_bg
 from utils.transformations import precios_supermercado_para
 from components.charts import apply_dark_layout
 
@@ -257,7 +258,7 @@ def render_por_supermercado(ctx):
             legend=dict(
                 orientation="h", yanchor="bottom", y=-0.18,
                 xanchor="center", x=0.5, font=dict(size=14, color=TEXT_MAIN),
-                bgcolor="rgba(15,23,42,0.65)", bordercolor="rgba(148,163,184,0.25)", borderwidth=1
+                bgcolor=plot_bg(0.65), bordercolor="rgba(148,163,184,0.25)", borderwidth=1
             )
         )
         apply_dark_layout(fig_comp)

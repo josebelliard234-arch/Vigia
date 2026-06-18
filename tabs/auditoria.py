@@ -227,25 +227,25 @@ def render_auditoria():
             cambio_html = ""
             if val_ant or val_new:
                 cambio_html = (
-                    f"<span style='color:#94A3B8;font-size:.75rem;'>"
+                    f"<span style='color:var(--t2);font-size:.75rem;'>"
                     f"<b>Antes:</b> {val_ant or '—'} &nbsp;→&nbsp; <b>Despues:</b> {val_new or '—'}"
                     f"</span><br>"
                 )
 
             st.markdown(
                 f"<div style='padding:.55rem .85rem;margin-bottom:.4rem;"
-                f"border:1px solid rgba(148,163,184,0.15);border-radius:10px;"
-                f"background:rgba(15,23,42,0.6);'>"
+                f"border:1px solid var(--bd);border-radius:10px;"
+                f"background:var(--bg-card);'>"
                 f"<div style='display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;'>"
                 f"<span style='background:{color}22;color:{color};font-size:.7rem;font-weight:700;"
                 f"padding:.15rem .5rem;border-radius:999px;border:1px solid {color}44;white-space:nowrap;'>"
                 f"{label}</span>"
-                f"<span style='color:#F8FAFC;font-size:.82rem;font-weight:600;'>{usuario}</span>"
-                f"<span style='color:#64748B;font-size:.75rem;'>({rol})</span>"
-                f"<span style='color:#475569;font-size:.72rem;margin-left:auto;'>{ts}</span>"
+                f"<span style='color:var(--t0);font-size:.82rem;font-weight:600;'>{usuario}</span>"
+                f"<span style='color:var(--t3);font-size:.75rem;'>({rol})</span>"
+                f"<span style='color:var(--t3);font-size:.72rem;margin-left:auto;'>{ts}</span>"
                 f"</div>"
-                f"<div style='margin-top:.25rem;color:#CBD5E1;font-size:.78rem;'>"
-                f"<b style='color:#94A3B8;'>{entidad}</b>"
+                f"<div style='margin-top:.25rem;color:var(--t1);font-size:.78rem;'>"
+                f"<b style='color:var(--t2);'>{entidad}</b>"
                 f"{' — ' + detalle_display if detalle_display else ''}"
                 f"</div>"
                 f"{cambio_html}"
