@@ -1,248 +1,340 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 
 from utils.dates import fmt_sem
-from utils.formatting import fmt_rdp, norm_key
-from styles.theme import TEXT_MAIN, TEXT_MUTED, TEXT_SECONDARY, RED, GREEN, YELLOW
+from utils.formatting import fmt_rdp
+from utils.transformations import normalizar_categoria
+from components.charts import apply_dark_layout
+from styles.theme import TEXT_MAIN, TEXT_SECONDARY, TEXT_MUTED, RED, GREEN, YELLOW, BLUE
 
 
-def _kpi_big(label: str, value: str, sub: str = "", color: str = "#3B82F6") -> str:
+# ── Helpers visuales ──────────────────────────────────────────
+def _card_cat(nombre, pct, n_prods, n_sub, n_baj, size="normal"):
+    color = RED if pct > 0.5 else (GREEN if pct < -0.5 else "#94A3B8")
+    sign  = "+" if pct > 0 else ""
+    icon  = "▲" if pct > 0.5 else ("▼" if pct < -0.5 else "—")
+    val_fs = "1.7rem" if size == "normal" else "1.35rem"
     return (
-        f'<div style="padding:1.2rem 1.3rem 1.1rem 1.3rem;border-radius:14px;'
+        f'<div style="padding:.9rem 1rem;border-radius:13px;'
         f'background:linear-gradient(135deg,{color}18 0%,{color}08 100%);'
-        f'border:1px solid {color}55;border-top:3px solid {color};'
-        f'height:100%;box-sizing:border-box;">'
-        f'<div style="font-size:.74rem;color:{color}cc;font-weight:700;'
-        f'text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem;">{label}</div>'
-        f'<div style="font-size:2.2rem;font-weight:800;color:{color};'
-        f'line-height:1.1;word-break:break-word;">{value}</div>'
-        f'<div style="font-size:.76rem;color:#64748B;margin-top:.3rem;">{sub}</div>'
+        f'border:1px solid {color}44;border-top:3px solid {color};height:100%;">'
+        f'<div style="font-size:.68rem;color:{color}cc;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;">{nombre}</div>'
+        f'<div style="font-size:{val_fs};font-weight:800;color:{color};line-height:1;">'
+        f'{icon} {sign}{pct:.1f}%</div>'
+        f'<div style="font-size:.7rem;color:#475569;margin-top:.3rem;">'
+        f'{n_prods} productos&nbsp;&nbsp;'
+        f'<span style="color:{RED};">▲{n_sub}</span>&nbsp;'
+        f'<span style="color:{GREEN};">▼{n_baj}</span>'
+        f'</div>'
         f'</div>'
     )
 
 
-def _kpi_small(label: str, value: str, color: str = "#94A3B8") -> str:
+def _kpi_mini(label, value, color="#94A3B8", badge=""):
     return (
-        f'<div style="padding:.8rem 1rem .75rem 1rem;border-radius:12px;'
-        f'background:linear-gradient(135deg,{color}15 0%,{color}06 100%);'
-        f'border:1px solid {color}40;border-left:3px solid {color};">'
-        f'<div style="font-size:.68rem;color:{color}bb;font-weight:700;'
-        f'text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem;">{label}</div>'
-        f'<div style="font-size:1.45rem;font-weight:800;color:{color};">{value}</div>'
+        f'<div style="padding:.7rem .9rem;border-radius:11px;'
+        f'background:rgba(15,23,42,0.65);border:1px solid {color}33;'
+        f'border-left:3px solid {color};">'
+        f'<div style="font-size:.67rem;color:{color}99;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.06em;">{label}</div>'
+        f'<div style="font-size:1.25rem;font-weight:800;color:{color};margin-top:.15rem;">'
+        f'{value}{badge}</div>'
         f'</div>'
     )
 
 
-def _fuente_badge(fuente: str) -> str:
+def _fuente_badge(fuente):
     if fuente == "bruto":
         return (
-            f' <span style="background:rgba(245,158,11,0.18);color:{YELLOW};'
-            f'font-size:.65rem;font-weight:700;padding:.04rem .32rem;border-radius:5px;'
+            f'<span style="margin-left:.4rem;background:rgba(245,158,11,0.18);color:{YELLOW};'
+            f'font-size:.62rem;font-weight:700;padding:.03rem .3rem;border-radius:5px;'
             f'border:1px solid rgba(245,158,11,0.35);vertical-align:middle;">BRUTO</span>'
         )
     if fuente == "validado":
         return (
-            f' <span style="background:rgba(34,197,94,0.15);color:{GREEN};'
-            f'font-size:.65rem;font-weight:700;padding:.04rem .32rem;border-radius:5px;'
+            f'<span style="margin-left:.4rem;background:rgba(34,197,94,0.15);color:{GREEN};'
+            f'font-size:.62rem;font-weight:700;padding:.03rem .3rem;border-radius:5px;'
             f'border:1px solid rgba(34,197,94,0.3);vertical-align:middle;">VALIDADO</span>'
         )
     return ""
 
 
+# ── Calculo de deltas por categoría ──────────────────────────
+def _calc_categoria_delta(df_all, semana_act, semana_ref):
+    """
+    Para cada categoría calcula el cambio % promedio entre dos semanas.
+    Solo incluye productos presentes en ambas semanas (cross-join por id_producto+presentacion).
+    Devuelve DataFrame: cat_norm, pct_cambio, n_productos, n_subio, n_bajo, n_estable.
+    """
+    df_a = df_all[df_all["semana"] == semana_act]
+    df_r = df_all[df_all["semana"] == semana_ref]
+    if df_a.empty or df_r.empty:
+        return pd.DataFrame()
+
+    grp_a = (df_a.groupby(["id_producto", "presentacion", "categoria"])["precio"]
+             .mean().reset_index())
+    grp_r = (df_r.groupby(["id_producto", "presentacion"])["precio"]
+             .mean().reset_index().rename(columns={"precio": "precio_ref"}))
+
+    m = grp_a.merge(grp_r, on=["id_producto", "presentacion"], how="inner")
+    m = m[m["precio_ref"] > 0].copy()
+    if m.empty:
+        return pd.DataFrame()
+
+    m["pct"]      = (m["precio"] - m["precio_ref"]) / m["precio_ref"] * 100
+    m["cat_norm"] = m["categoria"].apply(normalizar_categoria)
+    m = m[~m["cat_norm"].isin(["Sin categoria", "nan", ""])]
+
+    agg = m.groupby("cat_norm").agg(
+        pct_cambio  =("pct", "mean"),
+        n_productos =("id_producto", "nunique"),
+        n_subio     =("pct", lambda x: int((x > 0.5).sum())),
+        n_bajo      =("pct", lambda x: int((x < -0.5).sum())),
+    ).reset_index()
+    agg["n_estable"] = agg["n_productos"] - agg["n_subio"] - agg["n_bajo"]
+    return agg.sort_values("pct_cambio", ascending=False).reset_index(drop=True)
+
+
+def _semana_n_atras(todas_semanas, semana_act, n):
+    """Devuelve la semana N posiciones antes de semana_act en la lista ordenada."""
+    if semana_act not in todas_semanas:
+        return None
+    idx = todas_semanas.index(semana_act)
+    ref_idx = idx - n
+    return todas_semanas[ref_idx] if ref_idx >= 0 else None
+
+
+# ── Render principal ──────────────────────────────────────────
 def render_inicio(ctx):
-    df_actual  = ctx.df_actual.copy() if ctx.df_actual is not None else ctx.df_actual
-    df_comp    = ctx.df_comp.copy()   if ctx.df_comp   is not None else ctx.df_comp
-    df_all     = ctx.df_all
-    sa_lbl     = ctx.sa_lbl
-    sc_lbl     = ctx.sc_lbl
-    sa_lbl_l   = ctx.sa_lbl_l
-    sc_lbl_l   = ctx.sc_lbl_l
-    fuente_act = ctx.fuente_actual or ""
+    df_all      = ctx.df_all
+    df_actual   = ctx.df_actual
+    semana_act  = ctx.semana_actual
+    sa_lbl      = ctx.sa_lbl
+    sa_lbl_l    = ctx.sa_lbl_l
+    sc_lbl      = ctx.sc_lbl
+    sc_lbl_l    = ctx.sc_lbl_l
+    fuente_act  = ctx.fuente_actual or ""
+
+    todas_semanas = sorted(df_all["semana"].dropna().unique())
 
     st.markdown(
-        '<div style="margin-bottom:.9rem;">'
-        '<span style="font-size:1.4rem;font-weight:800;color:#F8FAFC;">📊 Panel de Control</span>'
+        '<div style="margin-bottom:.75rem;">'
+        '<span style="font-size:1.35rem;font-weight:800;color:#F8FAFC;">📊 Panel de Control</span>'
         '<span style="font-size:.8rem;color:#64748B;margin-left:.7rem;">'
-        'Resumen general del monitoreo de precios</span>'
+        'Situación de precios por categoría</span>'
         '</div>',
         unsafe_allow_html=True,
     )
 
-    # ── Filtros avanzados ─────────────────────────────────────
-    with st.expander("🔍 Filtros avanzados", expanded=False):
-        provincias_disp = (
-            sorted(df_actual["provincia"].dropna().unique())
-            if df_actual is not None and not df_actual.empty else []
-        )
-        fa1, fa2 = st.columns(2)
-        prov_sel = fa1.multiselect(
-            "Provincia",
-            provincias_disp,
-            default=provincias_disp,
-            key="inicio_prov",
-        )
-        buscar_prod = fa2.text_input(
-            "Buscar producto (contiene)",
-            value="",
-            key="inicio_buscar",
-        )
-        if provincias_disp and prov_sel:
-            df_actual = df_actual[df_actual["provincia"].isin(prov_sel)]
-        elif provincias_disp and not prov_sel:
-            df_actual = df_actual.iloc[0:0]
-        if buscar_prod.strip():
-            p = buscar_prod.strip()
-            if df_actual is not None and not df_actual.empty:
-                df_actual = df_actual[df_actual["producto"].str.contains(p, case=False, na=False)]
-            if df_comp is not None and not df_comp.empty:
-                df_comp = df_comp[df_comp["producto"].str.contains(p, case=False, na=False)]
-
-    # ── Selector de producto ──────────────────────────────────
-    with st.container():
-        ps1, ps2, ps3 = st.columns([3, 2.5, 1])
-        productos_opts = sorted(df_all["producto"].dropna().unique()) if not df_all.empty else []
-        prod_sel = ps1.selectbox(
-            "Producto",
-            ["- Todos los productos -"] + productos_opts,
-            index=0,
-            key="inicio_prod",
-        )
-        if prod_sel and prod_sel != "- Todos los productos -":
-            pres_opts = sorted(
-                df_all[df_all["producto"] == prod_sel]["presentacion"].dropna().unique()
-            )
-            pres_all = ["- Todas -"] + pres_opts if len(pres_opts) > 1 else pres_opts
-            pres_sel = ps2.selectbox("Presentacion", pres_all, index=0, key="inicio_pres")
-        else:
-            pres_sel = None
-            ps2.selectbox("Presentacion", ["-"], disabled=True, key="inicio_pres_dis")
-
-    # ── Calcular promedios ───────────────────────────────────
-    def _prom(df_src, prod, pres):
-        if df_src is None or df_src.empty:
-            return None
-        if not prod or prod == "- Todos los productos -":
-            return float(df_src["precio"].mean())
-        mask = df_src["producto"].map(norm_key) == norm_key(prod)
-        if pres and pres not in ("- Todas -",):
-            mask &= df_src["presentacion"].map(norm_key) == norm_key(pres)
-        sub = df_src[mask]
-        return float(sub["precio"].mean()) if not sub.empty else None
-
-    prom_act  = _prom(df_actual, prod_sel, pres_sel)
-    prom_comp = _prom(df_comp,   prod_sel, pres_sel)
-
-    var_pct = var_rdp = None
-    if prom_act is not None and prom_comp is not None and prom_comp != 0:
-        var_rdp = prom_act - prom_comp
-        var_pct = var_rdp / prom_comp * 100
-
-    prom_act_txt  = fmt_rdp(prom_act)  if prom_act  is not None else "N/D"
-    prom_comp_txt = fmt_rdp(prom_comp) if prom_comp is not None else "N/D"
-
-    if var_pct is not None:
-        sign       = "+" if var_pct > 0 else ""
-        var_pct_txt = f"{sign}{var_pct:.1f}%"
-        var_rdp_txt = f"{'+' if var_rdp >= 0 else ''}{fmt_rdp(var_rdp)}"
-        var_color  = RED if var_pct > 0 else (GREEN if var_pct < 0 else "#94A3B8")
-    else:
-        var_pct_txt = "N/D"
-        var_rdp_txt = "N/D"
-        var_color   = "#94A3B8"
-
-    # ── KPIs grandes ─────────────────────────────────────────
-    st.markdown("<div style='margin:.55rem 0 .3rem 0'></div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    c1.markdown(
-        _kpi_big(
-            "Precio promedio — " + sa_lbl,
-            prom_act_txt,
-            sub=("Fuente: " + fuente_act.upper()) if fuente_act else "",
-            color="#3B82F6",
-        ),
-        unsafe_allow_html=True,
+    # ── Filtros de la pestaña ─────────────────────────────────
+    fc1, fc2, fc3 = st.columns([2, 2, 2])
+    periodos = {
+        "vs semana anterior": 1,
+        "Últimas 4 semanas":  4,
+        "Últimas 6 semanas":  6,
+    }
+    periodo_lbl = fc1.selectbox(
+        "Período de análisis",
+        list(periodos.keys()),
+        index=0,
+        key="inicio_periodo",
     )
-    c2.markdown(
-        _kpi_big(
-            "Precio promedio — " + sc_lbl,
-            prom_comp_txt,
-            sub="Semana base de comparacion",
-            color="#8B5CF6",
-        ),
-        unsafe_allow_html=True,
+    n_semanas = periodos[periodo_lbl]
+
+    # Filtro de provincia (avanzado)
+    provincias_disp = (
+        sorted(df_actual["provincia"].dropna().unique())
+        if df_actual is not None and not df_actual.empty else []
     )
-    c3.markdown(
-        _kpi_big(
-            "Variacion",
-            var_pct_txt,
-            sub=var_rdp_txt,
-            color=var_color,
-        ),
-        unsafe_allow_html=True,
+    prov_sel = fc2.multiselect(
+        "Provincia",
+        provincias_disp,
+        default=provincias_disp,
+        key="inicio_prov",
+        placeholder="Todas las provincias",
+    )
+    buscar_cat = fc3.text_input(
+        "Buscar categoría",
+        value="",
+        key="inicio_buscar_cat",
+        placeholder="Filtrar categorías...",
     )
 
-    st.markdown("<div style='margin:.55rem 0 .3rem 0'></div>", unsafe_allow_html=True)
+    # Aplicar filtro de provincia a df_all para el análisis
+    df_analisis = df_all.copy()
+    if prov_sel and len(prov_sel) < len(provincias_disp):
+        df_analisis = df_analisis[df_analisis["provincia"].isin(prov_sel)]
 
-    # ── KPIs secundarios ─────────────────────────────────────
-    n_registros = len(df_actual) if df_actual is not None else 0
-    n_prods = int(df_actual["producto"].nunique()) if (df_actual is not None and not df_actual.empty) else 0
-    n_sups  = int(df_actual["supermercado"].nunique()) if (df_actual is not None and not df_actual.empty) else 0
-    n_provs = int(df_actual["provincia"].nunique())    if (df_actual is not None and not df_actual.empty) else 0
+    # ── Semana de referencia ──────────────────────────────────
+    semana_ref = _semana_n_atras(todas_semanas, semana_act, n_semanas)
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.markdown(_kpi_small("Registros actuales", f"{n_registros:,}",   "#94A3B8"), unsafe_allow_html=True)
-    k2.markdown(_kpi_small("Productos",           str(n_prods),         "#06B6D4"), unsafe_allow_html=True)
-    k3.markdown(_kpi_small("Supermercados",       str(n_sups),          "#A78BFA"), unsafe_allow_html=True)
-    k4.markdown(_kpi_small("Provincias",          str(n_provs),         "#F97316"), unsafe_allow_html=True)
+    if not semana_ref:
+        st.warning(
+            f"No hay suficientes semanas en la base de datos para el período "
+            f"'{periodo_lbl}'. Hay {len(todas_semanas)} semana(s) disponibles."
+        )
+        return
 
-    st.markdown("<div style='margin:.6rem 0 .2rem 0'></div>", unsafe_allow_html=True)
-    st.divider()
+    ref_lbl   = fmt_sem(semana_ref, "corta")
+    ref_lbl_l = fmt_sem(semana_ref, "larga")
 
-    # ── Detalle semanas ───────────────────────────────────────
+    # ── Calcular deltas ───────────────────────────────────────
+    delta_df = _calc_categoria_delta(df_analisis, semana_act, semana_ref)
+
+    if delta_df.empty:
+        st.info("No hay productos en común entre las semanas para calcular variaciones.")
+        return
+
+    # Filtro por nombre de categoría
+    if buscar_cat.strip():
+        bl = buscar_cat.strip().lower()
+        delta_df = delta_df[delta_df["cat_norm"].str.lower().str.contains(bl, na=False)]
+        if delta_df.empty:
+            st.info(f"No se encontraron categorías que coincidan con '{buscar_cat}'.")
+            return
+
+    # ── Métricas resumen ──────────────────────────────────────
+    n_total  = len(delta_df)
+    n_subio  = int((delta_df["pct_cambio"] >  0.5).sum())
+    n_bajo   = int((delta_df["pct_cambio"] < -0.5).sum())
+    n_estbl  = n_total - n_subio - n_bajo
+    n_prods_total = int(delta_df["n_productos"].sum())
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.markdown(_kpi_mini("Categorías analizadas", str(n_total),       "#94A3B8"), unsafe_allow_html=True)
+    m2.markdown(_kpi_mini("Con alza",              str(n_subio),       RED),       unsafe_allow_html=True)
+    m3.markdown(_kpi_mini("Con baja",              str(n_bajo),        GREEN),     unsafe_allow_html=True)
+    m4.markdown(_kpi_mini("Estables",              str(n_estbl),       "#64748B"), unsafe_allow_html=True)
+
     st.markdown(
-        '<span style="font-size:.88rem;font-weight:700;color:#F8FAFC;">Semanas</span>',
+        f'<div style="font-size:.73rem;color:#475569;margin:.4rem 0 .6rem 0;">'
+        f'Comparando <b style="color:#F8FAFC;">{sa_lbl_l}</b> vs '
+        f'<b style="color:#F8FAFC;">{ref_lbl_l}</b>'
+        f' · {n_prods_total} productos con datos en ambas semanas'
+        f'</div>',
         unsafe_allow_html=True,
     )
-    d1, d2 = st.columns(2)
-    with d1:
-        st.markdown(
-            f'<div style="padding:.75rem 1rem;border-radius:12px;'
-            f'background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);">'
-            f'<div style="font-size:.72rem;color:#64748B;font-weight:700;'
-            f'text-transform:uppercase;letter-spacing:.05em;">Semana actual</div>'
-            f'<div style="font-size:1.2rem;font-weight:800;color:#3B82F6;margin:.2rem 0;">'
-            f'{sa_lbl}{_fuente_badge(fuente_act)}</div>'
-            f'<div style="font-size:.77rem;color:#64748B;">{sa_lbl_l}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    with d2:
-        st.markdown(
-            f'<div style="padding:.75rem 1rem;border-radius:12px;'
-            f'background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);">'
-            f'<div style="font-size:.72rem;color:#64748B;font-weight:700;'
-            f'text-transform:uppercase;letter-spacing:.05em;">Semana comparada</div>'
-            f'<div style="font-size:1.2rem;font-weight:800;color:#8B5CF6;margin:.2rem 0;">'
-            f'{sc_lbl}</div>'
-            f'<div style="font-size:.77rem;color:#64748B;">{sc_lbl_l}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
 
-    # ── Producto seleccionado ─────────────────────────────────
-    if prod_sel and prod_sel != "- Todos los productos -":
-        st.markdown("<div style='margin:.5rem 0'></div>", unsafe_allow_html=True)
-        pres_txt = (
-            pres_sel if (pres_sel and pres_sel != "- Todas -")
-            else "Todas las presentaciones"
-        )
-        st.markdown(
-            f'<div style="padding:.7rem 1rem;border-radius:12px;'
-            f'background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.1);">'
-            f'<span style="font-size:.72rem;color:#64748B;font-weight:700;'
-            f'text-transform:uppercase;letter-spacing:.05em;">Producto seleccionado</span>&nbsp;&nbsp;'
-            f'<span style="font-size:.9rem;font-weight:700;color:#F8FAFC;">{prod_sel}</span>'
-            f'<span style="font-size:.8rem;color:#64748B;margin-left:.6rem;">· {pres_txt}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+    # ── Gráfico de barras horizontales ────────────────────────
+    df_chart = delta_df.sort_values("pct_cambio").copy()
+    bar_colors = [
+        RED if v > 0.5 else (GREEN if v < -0.5 else "#475569")
+        for v in df_chart["pct_cambio"]
+    ]
+
+    fig = go.Figure(go.Bar(
+        x=df_chart["pct_cambio"],
+        y=df_chart["cat_norm"],
+        orientation="h",
+        marker_color=bar_colors,
+        customdata=df_chart[["n_productos", "n_subio", "n_bajo"]].values,
+        hovertemplate=(
+            "<b>%{y}</b><br>"
+            "Variación promedio: %{x:+.2f}%<br>"
+            "Productos rastreados: %{customdata[0]}<br>"
+            "Subieron: %{customdata[1]} · Bajaron: %{customdata[2]}"
+            "<extra></extra>"
+        ),
+        text=[f"{'+' if v >= 0 else ''}{v:.1f}%" for v in df_chart["pct_cambio"]],
+        textposition="outside",
+        textfont=dict(size=11, color=TEXT_SECONDARY, family="Inter"),
+    ))
+
+    max_abs = df_chart["pct_cambio"].abs().max() or 1
+    fig.update_layout(
+        title=dict(
+            text=f"Variación de precios por categoría — {sa_lbl} vs {ref_lbl} ({periodo_lbl})",
+            font=dict(size=13, color=TEXT_MAIN, family="Inter"), x=0,
+        ),
+        height=max(320, len(df_chart) * 34),
+        margin=dict(l=10, r=80, t=50, b=30),
+        bargap=0.28,
+        xaxis=dict(
+            zeroline=True,
+            zerolinecolor="rgba(248,250,252,0.35)",
+            zerolinewidth=2,
+            range=[-(max_abs * 1.35), max_abs * 1.35],
+            ticksuffix="%",
+            tickfont=dict(size=10, color=TEXT_MUTED),
+        ),
+        yaxis=dict(tickfont=dict(size=11, color=TEXT_SECONDARY)),
+    )
+    apply_dark_layout(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Top movers ────────────────────────────────────────────
+    top_sub = delta_df[delta_df["pct_cambio"] >  0.5].head(3)
+    top_baj = delta_df[delta_df["pct_cambio"] < -0.5].sort_values("pct_cambio").head(3)
+
+    if not top_sub.empty or not top_baj.empty:
+        col_up, col_dn = st.columns(2)
+        with col_up:
+            st.markdown(
+                f'<div style="font-size:.78rem;font-weight:700;color:{RED};'
+                f'margin-bottom:.4rem;">▲ Mayor alza</div>',
+                unsafe_allow_html=True,
+            )
+            for _, r in top_sub.iterrows():
+                st.markdown(
+                    _card_cat(r["cat_norm"], r["pct_cambio"],
+                              r["n_productos"], r["n_subio"], r["n_bajo"],
+                              size="small"),
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div style='margin-bottom:.3rem'></div>", unsafe_allow_html=True)
+
+        with col_dn:
+            st.markdown(
+                f'<div style="font-size:.78rem;font-weight:700;color:{GREEN};'
+                f'margin-bottom:.4rem;">▼ Mayor baja</div>',
+                unsafe_allow_html=True,
+            )
+            for _, r in top_baj.iterrows():
+                st.markdown(
+                    _card_cat(r["cat_norm"], r["pct_cambio"],
+                              r["n_productos"], r["n_subio"], r["n_bajo"],
+                              size="small"),
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div style='margin-bottom:.3rem'></div>", unsafe_allow_html=True)
+
+    # ── Info de contexto ──────────────────────────────────────
+    st.divider()
+    i1, i2, i3 = st.columns(3)
+    i1.markdown(
+        f'<div style="padding:.65rem .9rem;border-radius:11px;'
+        f'background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);">'
+        f'<div style="font-size:.67rem;color:#3B82F688;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.05em;">Semana actual</div>'
+        f'<div style="font-size:1rem;font-weight:800;color:#3B82F6;margin:.15rem 0;">'
+        f'{sa_lbl}{_fuente_badge(fuente_act)}</div>'
+        f'<div style="font-size:.72rem;color:#475569;">{sa_lbl_l}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    i2.markdown(
+        f'<div style="padding:.65rem .9rem;border-radius:11px;'
+        f'background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);">'
+        f'<div style="font-size:.67rem;color:#8B5CF688;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.05em;">Semana de referencia</div>'
+        f'<div style="font-size:1rem;font-weight:800;color:#8B5CF6;margin:.15rem 0;">'
+        f'{ref_lbl}</div>'
+        f'<div style="font-size:.72rem;color:#475569;">{ref_lbl_l}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    n_reg = len(df_actual) if df_actual is not None else 0
+    n_sups = int(df_actual["supermercado"].nunique()) if (df_actual is not None and not df_actual.empty) else 0
+    i3.markdown(
+        f'<div style="padding:.65rem .9rem;border-radius:11px;'
+        f'background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);">'
+        f'<div style="font-size:.67rem;color:#F9731688;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.05em;">Cobertura semana actual</div>'
+        f'<div style="font-size:1rem;font-weight:800;color:#F97316;margin:.15rem 0;">'
+        f'{n_reg:,} registros</div>'
+        f'<div style="font-size:.72rem;color:#475569;">{n_sups} supermercados</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
