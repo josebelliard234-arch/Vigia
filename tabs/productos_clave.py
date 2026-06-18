@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 
 from styles.theme import (
     TEXT_MAIN, TEXT_SECONDARY,
-    GREEN, RED, GRAY,
+    GREEN, RED, GRAY, light_df,
 )
 from utils.formatting import fmt_rdp, fmt_pct
 from utils.transformations import precio_promedio_semana
@@ -98,7 +98,7 @@ def render_productos_clave(ctx):
                     "fuente_ant": f"Fuente {sc_lbl}",
                     "fuente_act": f"Fuente {sa_lbl}",
                 })
-                st.dataframe(no_disp_view, use_container_width=True, hide_index=True)
+                st.dataframe(light_df(no_disp_view), use_container_width=True, hide_index=True)
         return
 
     f1, f2 = st.columns(2)
@@ -226,4 +226,4 @@ def render_productos_clave(ctx):
     display_clave["Variacion RD$"]     = display_clave["Variacion RD$"].apply(lambda x: f"RD$ {x:+,.2f}")
     display_clave["Variacion %"]       = display_clave["Variacion %"].apply(fmt_pct)
     st.caption(f"📅 {sc_lbl_l} → {sa_lbl_l}")
-    st.dataframe(display_clave, use_container_width=True, hide_index=True)
+    st.dataframe(light_df(display_clave), use_container_width=True, hide_index=True)

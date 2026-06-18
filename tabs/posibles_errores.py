@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 
 from styles.theme import (
     TEXT_MAIN, TEXT_SECONDARY,
-    GREEN, RED,
+    GREEN, RED, light_df,
 )
 from utils.formatting import fmt_rdp, fmt_pct, nivel_alerta
 from utils.transformations import cruzar_semanas
@@ -81,7 +81,7 @@ def render_posibles_errores(ctx):
 
     st.caption(f"📅 Precio actual {sa_lbl_l} · Referencia validada {sc_lbl_l}   |   Umbral aplicado: ±{umbral:.2f}%")
     st.dataframe(
-        display_err.sort_values("Variacion %", ascending=False),
+        light_df(display_err.sort_values("Variacion %", ascending=False)),
         use_container_width=True, hide_index=True
     )
 

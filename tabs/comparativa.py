@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 
 from styles.theme import (
     TEXT_MAIN, TEXT_SECONDARY, TEXT_MUTED,
-    GREEN, RED,
+    GREEN, RED, light_df,
 )
 from utils.formatting import fmt_rdp, fmt_pct
 from utils.transformations import cruzar_semanas, normalizar_categoria, preparar_productos_con_cambio
@@ -106,7 +106,7 @@ def render_comparativa(ctx):
         mask_cambio = abs(var_pct_num) > 0.01
         display = display[mask_cambio]
     st.caption(f"📅 {sa_lbl_l} vs {sc_lbl_l}")
-    st.dataframe(display, use_container_width=True, hide_index=True)
+    st.dataframe(light_df(display), use_container_width=True, hide_index=True)
 
     # -- Productos con cambio de precio --
     st.subheader("Productos con cambio de precio")
@@ -271,4 +271,4 @@ def render_comparativa(ctx):
 
     # -- Tabla --
     st.caption(f"📅 {sa_lbl_l} vs {sc_lbl_l}  ·  {len(df_tabla_pcc)} productos")
-    st.dataframe(df_tabla_pcc, use_container_width=True, hide_index=True)
+    st.dataframe(light_df(df_tabla_pcc), use_container_width=True, hide_index=True)

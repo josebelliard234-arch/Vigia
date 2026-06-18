@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
 
-from styles.theme import TEXT_MAIN, TEXT_SECONDARY, BLUE, RED, YELLOW, GREEN
+from styles.theme import TEXT_MAIN, TEXT_SECONDARY, BLUE, RED, YELLOW, GREEN, light_df
 from utils.dates import fmt_sem, semana_label_a_datetime, ordenar_semanas_iso
 from utils.formatting import fmt_rdp, fmt_pct
 from utils.transformations import proyeccion_despues_de_semana_corte
@@ -355,4 +355,4 @@ def render_historial(ctx):
             "Precio estimado":      fmt_rdp(pr),
             "Variacion vs ultimo":  fmt_pct((pr - ultimo) / ultimo * 100),
         } for lbl, pr in zip(fut_l, fut_p)]
-        st.dataframe(pd.DataFrame(proj_rows), use_container_width=True, hide_index=True)
+        st.dataframe(light_df(pd.DataFrame(proj_rows)), use_container_width=True, hide_index=True)

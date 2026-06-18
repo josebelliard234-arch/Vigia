@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 
 from styles.theme import (
     TEXT_MAIN, TEXT_SECONDARY,
-    BLUE, GREEN, RED,
+    BLUE, GREEN, RED, light_df,
 )
 from utils.dates import fmt_sem
 from utils.formatting import fmt_rdp, fmt_pct
@@ -282,7 +282,7 @@ def render_por_supermercado(ctx):
             "Variacion %"
         ]
         st.caption(f"📅 {_ssa_lbl_l} (Sem. A) · {_ssc_lbl_l} (Sem. B)")
-        st.dataframe(tabla_comp, use_container_width=True, hide_index=True)
+        st.dataframe(light_df(tabla_comp), use_container_width=True, hide_index=True)
     else:
         st.caption(
             f"No hay datos desglosados por supermercado para la semana B "

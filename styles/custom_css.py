@@ -276,6 +276,80 @@ textarea::placeholder {{
     border-radius: 12px !important;
 }}
 
+/* ══════════════════════════════════════════════════════════════
+   DATAFRAME + HTML TABLES — light mode
+   GDG renders cells on canvas; per-cell colors come from the pandas
+   Styler (applied via light_df() helper in styles/theme.py).
+   These CSS rules cover: container chrome, HTML table fallback,
+   and any <table> injected via st.markdown.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── st.dataframe outer container ───────────────────────── */
+[data-testid="stDataFrame"] {{
+    border: 1px solid #D8E0EA !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}}
+[data-testid="stDataFrame"] > div {{
+    background-color: #FFFFFF !important;
+    border-radius: 14px !important;
+}}
+/* GDG canvas container — shown in empty/scroll areas */
+.dvn-scroller {{
+    background-color: #FFFFFF !important;
+}}
+[data-testid="stDataFrame"] canvas {{
+    background-color: #FFFFFF !important;
+}}
+
+/* ── HTML <table> — Styler + st.markdown + st.html ──────── */
+.stDataFrame table,
+[data-testid="stDataFrame"] table,
+[data-testid="stMarkdownContainer"] table,
+.element-container table {{
+    background: #FFFFFF !important;
+    color: #1E293B !important;
+    border: 1px solid #D8E0EA !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}}
+.stDataFrame thead, .stDataFrame th,
+[data-testid="stDataFrame"] thead,
+[data-testid="stDataFrame"] th,
+[data-testid="stMarkdownContainer"] thead,
+[data-testid="stMarkdownContainer"] th,
+.element-container thead, .element-container th {{
+    background-color: #EAF1FB !important;
+    color: #0F172A !important;
+    font-weight: 800 !important;
+    border-bottom: 2px solid #CBD5E1 !important;
+    padding: 0.55rem 0.75rem !important;
+    white-space: nowrap !important;
+}}
+.stDataFrame td,
+[data-testid="stDataFrame"] td,
+[data-testid="stMarkdownContainer"] td,
+.element-container td {{
+    background-color: #FFFFFF !important;
+    color: #1E293B !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+    font-weight: 500 !important;
+    padding: 0.45rem 0.75rem !important;
+}}
+.stDataFrame tr:nth-child(even) td,
+[data-testid="stDataFrame"] tr:nth-child(even) td,
+[data-testid="stMarkdownContainer"] tr:nth-child(even) td {{
+    background-color: #F8FAFC !important;
+}}
+.stDataFrame tr:hover td,
+[data-testid="stDataFrame"] tr:hover td,
+[data-testid="stMarkdownContainer"] tr:hover td {{
+    background-color: #EFF6FF !important;
+}}
+
 /* ── LABELS ──────────────────────────────────────────────── */
 label {{
     color: #0F172A !important;

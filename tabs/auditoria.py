@@ -1,6 +1,7 @@
 ﻿import streamlit as st
 import pandas as pd
 from data.database import load_audit_log
+from styles.theme import light_df
 
 _ACCION_COLOR = {
     "LOGIN":            "#16A34A",
@@ -161,7 +162,7 @@ def render_auditoria():
                     "error_ed":        "Error",
                 }).reset_index(drop=True)
 
-                st.dataframe(df_tabla, use_container_width=True, hide_index=True)
+                st.dataframe(light_df(df_tabla), use_container_width=True, hide_index=True)
 
                 st.divider()
                 if st.button("Exportar a CSV", key="aud_e_export"):

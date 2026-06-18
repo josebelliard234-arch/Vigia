@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+from styles.theme import light_df
 from utils.dates import fmt_sem
 
 
@@ -96,23 +97,25 @@ def render_alertas(ctx):
     ]
 
     st.dataframe(
-        df_show[cols_tabla].rename(columns={
-            "tipo_alerta":      "Tipo",
-            "producto":         "Producto",
-            "presentacion":     "Presentacion",
-            "categoria":        "Categoria",
-            "precio_comp":      f"Precio {sc_lbl}",
-            "precio_actual":    f"Precio {sa_lbl}",
-            "var_abs":          "Var. Absoluta",
-            "var_pct":          "Var. %",
-            "semana_comparada":  "Semana comparada",
-            "semana_actual":    "Semana actual",
-        }).style.format({
-            f"Precio {sc_lbl}": "RD$ {:.2f}",
-            f"Precio {sa_lbl}": "RD$ {:.2f}",
-            "Var. Absoluta":    "{:+.2f}",
-            "Var. %":           "{:+.2f}%",
-        }),
+        light_df(
+            df_show[cols_tabla].rename(columns={
+                "tipo_alerta":      "Tipo",
+                "producto":         "Producto",
+                "presentacion":     "Presentacion",
+                "categoria":        "Categoria",
+                "precio_comp":      f"Precio {sc_lbl}",
+                "precio_actual":    f"Precio {sa_lbl}",
+                "var_abs":          "Var. Absoluta",
+                "var_pct":          "Var. %",
+                "semana_comparada":  "Semana comparada",
+                "semana_actual":    "Semana actual",
+            }).style.format({
+                f"Precio {sc_lbl}": "RD$ {:.2f}",
+                f"Precio {sa_lbl}": "RD$ {:.2f}",
+                "Var. Absoluta":    "{:+.2f}",
+                "Var. %":           "{:+.2f}%",
+            })
+        ),
         use_container_width=True,
         hide_index=True,
     )

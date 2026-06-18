@@ -9,7 +9,7 @@ from data.database import (
     is_postgres,
 )
 from utils.dates import fmt_sem
-from styles.theme import get_theme_tokens, get_mode
+from styles.theme import get_theme_tokens, get_mode, light_df
 
 _COLORES = {
     "🟡 Amarillo — atencion":  "#D97706",
@@ -340,7 +340,7 @@ def render_edicion_datos():
     # ─── TABLA ───────────────────────────────────────────────
     if readonly_mode:
         st.caption("Modo solo lectura — selecciona exactamente una provincia para editar.")
-        st.dataframe(df_display, use_container_width=True, hide_index=True, height=tbl_height)
+        st.dataframe(light_df(df_display), use_container_width=True, hide_index=True, height=tbl_height)
 
     else:
         if not modo_ampliado:
