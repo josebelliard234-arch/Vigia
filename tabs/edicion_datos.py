@@ -451,12 +451,13 @@ def render_edicion_datos():
         )
         go = gb.build()
 
+        _ag_theme = "alpine" if get_mode() == "light" else "alpine-dark"
         grid_resp = AgGrid(
             st.session_state["_ed_ag_df"],
             gridOptions=go,
             update_mode=GridUpdateMode.VALUE_CHANGED,
             data_return_mode=DataReturnMode.AS_INPUT,
-            theme="streamlit",
+            theme=_ag_theme,
             height=tbl_height,
             allow_unsafe_jscode=True,
             fit_columns_on_grid_load=False,

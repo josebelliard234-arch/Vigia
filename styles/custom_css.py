@@ -284,6 +284,139 @@ textarea::placeholder {{
    and any <table> injected via st.markdown.
    ══════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════
+   AG GRID — ag-theme-alpine (light mode only)
+   ag-theme-alpine-dark is used in dark mode (set in Python).
+   CSS vars are the standard AG Grid v27+ custom-property API.
+   ══════════════════════════════════════════════════════════════ */
+.ag-theme-alpine {{
+    --ag-background-color:                  #FFFFFF;
+    --ag-foreground-color:                  #1E293B;
+    --ag-border-color:                      #D8E0EA;
+    --ag-secondary-border-color:            #E2E8F0;
+    --ag-header-background-color:           #EAF1FB;
+    --ag-header-foreground-color:           #0F172A;
+    --ag-row-hover-color:                   #EFF6FF;
+    --ag-selected-row-background-color:     #DBEAFE;
+    --ag-odd-row-background-color:          #F8FAFC;
+    --ag-control-panel-background-color:    #F8FAFC;
+    --ag-subheader-background-color:        #EAF1FB;
+    --ag-panel-background-color:            #FFFFFF;
+    --ag-menu-background-color:             #FFFFFF;
+    --ag-tooltip-background-color:          #F8FAFC;
+    --ag-header-column-separator-color:     #CBD5E1;
+    --ag-range-selection-border-color:      #2563EB;
+    --ag-range-selection-background-color:  rgba(37,99,235,0.10);
+    --ag-input-focus-border-color:          #2563EB;
+    --ag-input-focus-box-shadow:            0 0 0 3px rgba(37,99,235,0.14);
+    --ag-checkbox-checked-color:            #2563EB;
+    --ag-checkbox-background-color:         #FFFFFF;
+    --ag-checkbox-border-radius:            4px;
+    --ag-card-shadow:                       0 8px 24px rgba(15,23,42,0.08);
+    --ag-popup-shadow:                      0 8px 24px rgba(15,23,42,0.12);
+    --ag-font-size:                         13px;
+    --ag-font-family:                       Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --ag-cell-horizontal-padding:           12px;
+    --ag-row-height:                        38px;
+    --ag-header-height:                     44px;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    border: 1px solid #D8E0EA !important;
+}}
+
+/* Header: font weight, bottom border */
+.ag-theme-alpine .ag-header {{
+    border-bottom: 2px solid #CBD5E1 !important;
+}}
+.ag-theme-alpine .ag-header-cell-text {{
+    color: #0F172A !important;
+    font-weight: 800 !important;
+}}
+.ag-theme-alpine .ag-header-cell,
+.ag-theme-alpine .ag-header-group-cell {{
+    background-color: #EAF1FB !important;
+    color: #0F172A !important;
+}}
+
+/* Rows */
+.ag-theme-alpine .ag-row-even {{
+    background-color: #FFFFFF !important;
+}}
+.ag-theme-alpine .ag-row-odd {{
+    background-color: #F8FAFC !important;
+}}
+.ag-theme-alpine .ag-row:hover {{
+    background-color: #EFF6FF !important;
+}}
+.ag-theme-alpine .ag-row-selected,
+.ag-theme-alpine .ag-row-selected.ag-row-odd,
+.ag-theme-alpine .ag-row-selected.ag-row-even {{
+    background-color: #DBEAFE !important;
+}}
+
+/* Cells */
+.ag-theme-alpine .ag-cell {{
+    color: #1E293B !important;
+    border-right: 1px solid #E2E8F0 !important;
+}}
+.ag-theme-alpine .ag-cell-range-selected {{
+    background-color: rgba(37,99,235,0.10) !important;
+}}
+
+/* Pinned left columns */
+.ag-theme-alpine .ag-pinned-left-cols-container .ag-cell {{
+    background-color: #F8FAFC !important;
+    border-right: 2px solid #CBD5E1 !important;
+    font-weight: 600 !important;
+    color: #0F172A !important;
+}}
+.ag-theme-alpine .ag-pinned-left-cols-container .ag-row-odd .ag-cell {{
+    background-color: #F1F5F9 !important;
+}}
+
+/* Filter inputs / floating filters */
+.ag-theme-alpine .ag-filter-toolpanel-search-input input,
+.ag-theme-alpine .ag-floating-filter-input input,
+.ag-theme-alpine input.ag-input-field-input {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    border-color: #CBD5E1 !important;
+    border-radius: 6px !important;
+}}
+
+/* Column menu popup */
+.ag-theme-alpine .ag-menu {{
+    background-color: #FFFFFF !important;
+    border: 1px solid #D8E0EA !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.12) !important;
+}}
+.ag-theme-alpine .ag-menu-option:hover {{
+    background-color: #EFF6FF !important;
+}}
+.ag-theme-alpine .ag-menu-option-text {{
+    color: #1E293B !important;
+}}
+
+/* Tooltip */
+.ag-theme-alpine .ag-tooltip {{
+    background-color: #F8FAFC !important;
+    color: #1E293B !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+}}
+
+/* Scrollbar inside AgGrid */
+.ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar,
+.ag-theme-alpine .ag-body-viewport::-webkit-scrollbar {{ width: 8px; height: 8px; }}
+.ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-track,
+.ag-theme-alpine .ag-body-viewport::-webkit-scrollbar-track {{ background: #F1F5F9; }}
+.ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb,
+.ag-theme-alpine .ag-body-viewport::-webkit-scrollbar-thumb {{
+    background: #CBD5E1; border-radius: 999px;
+}}
+
 /* ── st.dataframe outer container ───────────────────────── */
 [data-testid="stDataFrame"] {{
     border: 1px solid #D8E0EA !important;

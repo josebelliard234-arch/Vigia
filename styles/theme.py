@@ -84,15 +84,15 @@ _LIGHT_TOKENS: dict = {
 
     # ── AG Grid cell styles ────────────────────────────────
     "GRID_HIGH_BG":      "#FEE2E2",
-    "GRID_HIGH_FG":      "#DC2626",
-    "GRID_LOW_BG":       "#DBEAFE",
-    "GRID_LOW_FG":       "#2563EB",
+    "GRID_HIGH_FG":      "#991B1B",
+    "GRID_LOW_BG":       "#DCFCE7",
+    "GRID_LOW_FG":       "#166534",
     "GRID_DELTA_POS":    "#DC2626",
     "GRID_DELTA_NEG":    "#16A34A",
     "GRID_DELTA_NEU":    "#64748B",
     "GRID_DELTA_FAINT":  "#94A3B8",
-    "GRID_OT_HIGH":      "#DC2626",
-    "GRID_OT_LOW":       "#2563EB",
+    "GRID_OT_HIGH":      "#991B1B",
+    "GRID_OT_LOW":       "#166534",
 }
 
 # ════════════════════════════════════════════════════════════
