@@ -383,8 +383,8 @@ todas_semanas = sorted(set(df_all["semana"].dropna().astype(str).unique()))
 categorias    = sorted(df_all["categoria"].unique())
 categorias    = [c for c in categorias if c != "Referencia"]
 
-if section == "Por Supermercado":
-    # Esta pestaña tiene sus propios selectores de semana — los filtros globales no aplican
+if section in ("Inicio", "Por Supermercado"):
+    # Estas pestañas tienen sus propios filtros internos — los filtros globales no aplican
     semana_actual = todas_semanas[-1] if todas_semanas else None
     semana_comp   = todas_semanas[-2] if len(todas_semanas) >= 2 else None
     cat_sel       = "Todas"
