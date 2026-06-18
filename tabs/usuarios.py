@@ -6,6 +6,7 @@ from auth.auth import (
     create_user, update_user_auth, delete_user,
     load_users_safe, is_admin,
 )
+from styles.theme import get_mode
 
 # ── Utilidades visuales ───────────────────────────────────────
 _AVATAR_COLORS = [
@@ -284,8 +285,10 @@ def render_usuarios():
         rc[1].markdown(
             f'<div style="line-height:1.35;padding:.12rem 0;">'
             f'<span style="font-size:.87rem;font-weight:600;color:var(--t0);">{nombre}</span>'
-            + (f'<span style="margin-left:.35rem;font-size:.64rem;background:#172554;'
-               f'color:#93C5FD;padding:.04rem .28rem;border-radius:4px;font-weight:700;">TÚ</span>'
+            + (f'<span style="margin-left:.35rem;font-size:.64rem;'
+               f'background:{"#DBEAFE" if get_mode()=="light" else "#172554"};'
+               f'color:{"#1D4ED8" if get_mode()=="light" else "#93C5FD"};'
+               f'padding:.04rem .28rem;border-radius:4px;font-weight:700;">TÚ</span>'
                if es_yo else "")
             + f'<br><span style="font-size:.72rem;color:#2563EB;'
               f'font-family:monospace;">@{uname}</span>'
