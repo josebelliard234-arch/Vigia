@@ -420,28 +420,64 @@ textarea::placeholder {{
     background: #CBD5E1; border-radius: 999px;
 }}
 
-/* ── st.dataframe outer container ───────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   GDG CANVAS (st.dataframe / st.data_editor) — light mode
+   These rules control the CONTAINER frame and empty-scroll areas.
+   Per-cell colors come from pandas Styler via light_df() helper.
+   GDG renders cell content on canvas (JS) — CSS cannot override
+   individual cell colors, only the container/scrollbar chrome.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── st.dataframe container ─────────────────────────────── */
 [data-testid="stDataFrame"] {{
     border: 1px solid #D8E0EA !important;
     border-radius: 14px !important;
     overflow: hidden !important;
+    background-color: #FFFFFF !important;
 }}
 [data-testid="stDataFrame"] > div {{
     background-color: #FFFFFF !important;
     border-radius: 14px !important;
 }}
-/* GDG canvas container — shown in empty/scroll areas */
+
+/* ── st.data_editor container (simulacion.py) ───────────── */
+[data-testid="stDataEditor"] {{
+    border: 1px solid #D8E0EA !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    background-color: #FFFFFF !important;
+}}
+[data-testid="stDataEditor"] > div {{
+    background-color: #FFFFFF !important;
+    border-radius: 14px !important;
+}}
+
+/* GDG canvas scroller — empty-area background */
 .dvn-scroller {{
     background-color: #FFFFFF !important;
 }}
-[data-testid="stDataFrame"] canvas {{
+[data-testid="stDataFrame"] canvas,
+[data-testid="stDataEditor"] canvas {{
     background-color: #FFFFFF !important;
 }}
 
-/* ── HTML <table> — Styler + st.markdown + st.html ──────── */
+/* ══════════════════════════════════════════════════════════════
+   HTML <table> — st.table(), Styler HTML export, st.markdown
+   These targets CSS-styled HTML tables (not GDG canvas).
+   Covers: stMarkdownContainer, element-container, stTable.
+   ══════════════════════════════════════════════════════════════ */
+[data-testid="stTable"] table,
+[data-testid="stTable"] {{
+    border: 1px solid #D8E0EA !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    background-color: #FFFFFF !important;
+    color: #1E293B !important;
+}}
 .stDataFrame table,
 [data-testid="stDataFrame"] table,
 [data-testid="stMarkdownContainer"] table,
+[data-testid="stTable"] table,
 .element-container table {{
     background: #FFFFFF !important;
     color: #1E293B !important;
@@ -452,12 +488,16 @@ textarea::placeholder {{
     border-collapse: separate !important;
     border-spacing: 0 !important;
 }}
+/* Table headers */
 .stDataFrame thead, .stDataFrame th,
 [data-testid="stDataFrame"] thead,
 [data-testid="stDataFrame"] th,
 [data-testid="stMarkdownContainer"] thead,
 [data-testid="stMarkdownContainer"] th,
-.element-container thead, .element-container th {{
+[data-testid="stTable"] thead,
+[data-testid="stTable"] th,
+.element-container thead,
+.element-container th {{
     background-color: #EAF1FB !important;
     color: #0F172A !important;
     font-weight: 800 !important;
@@ -465,9 +505,11 @@ textarea::placeholder {{
     padding: 0.55rem 0.75rem !important;
     white-space: nowrap !important;
 }}
+/* Table data cells */
 .stDataFrame td,
 [data-testid="stDataFrame"] td,
 [data-testid="stMarkdownContainer"] td,
+[data-testid="stTable"] td,
 .element-container td {{
     background-color: #FFFFFF !important;
     color: #1E293B !important;
@@ -475,14 +517,18 @@ textarea::placeholder {{
     font-weight: 500 !important;
     padding: 0.45rem 0.75rem !important;
 }}
+/* Alternating rows */
 .stDataFrame tr:nth-child(even) td,
 [data-testid="stDataFrame"] tr:nth-child(even) td,
-[data-testid="stMarkdownContainer"] tr:nth-child(even) td {{
+[data-testid="stMarkdownContainer"] tr:nth-child(even) td,
+[data-testid="stTable"] tr:nth-child(even) td {{
     background-color: #F8FAFC !important;
 }}
+/* Hover */
 .stDataFrame tr:hover td,
 [data-testid="stDataFrame"] tr:hover td,
-[data-testid="stMarkdownContainer"] tr:hover td {{
+[data-testid="stMarkdownContainer"] tr:hover td,
+[data-testid="stTable"] tr:hover td {{
     background-color: #EFF6FF !important;
 }}
 

@@ -461,7 +461,7 @@ def render_edicion_datos():
             height=tbl_height,
             allow_unsafe_jscode=True,
             fit_columns_on_grid_load=False,
-            key="aggrid_precios",
+            key=f"aggrid_precios_{_ag_theme}",
         )
 
         # Persistir edits entre reruns del mismo conjunto de filtros
