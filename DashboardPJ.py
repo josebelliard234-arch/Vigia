@@ -7,10 +7,6 @@ import os
 import re
 from types import SimpleNamespace
 
-try:
-    from streamlit_option_menu import option_menu
-except Exception:
-    option_menu = None
 
 
 # ============================================================
@@ -127,12 +123,6 @@ with st.sidebar:
             "Administracion de Usuarios",
             "Auditoria",
         ]
-        _nav_icons = [
-            "speedometer2",
-            "bar-chart-line", "graph-up-arrow", "shop", "stars",
-            "exclamation-triangle", "bell", "folder2-open",
-            "pencil-square", "people", "shield-check",
-        ]
     else:
         _nav_options = [
             "Inicio",
@@ -143,82 +133,17 @@ with st.sidebar:
             "Posibles Errores",
             "Simulacion Temporal",
         ]
-        _nav_icons = [
-            "speedometer2",
-            "bar-chart-line", "graph-up-arrow", "shop", "stars",
-            "exclamation-triangle", "sliders",
-        ]
 
-    if option_menu:
-        _lm = _mode == "light"
-        if _lm:
-            _om_styles = {
-                "container": {
-                    "padding": "0 !important",
-                    "background-color": "transparent",
-                    "margin": "0",
-                },
-                "icon": {
-                    "color": "#475569",
-                    "font-size": "15px",
-                },
-                "nav-link": {
-                    "font-size": "13px",
-                    "text-align": "left",
-                    "margin": "4px 0",
-                    "padding": "11px 14px",
-                    "border-radius": "12px",
-                    "background-color": "transparent",
-                    "color": "#334155",
-                    "font-weight": "600",
-                },
-                "nav-link-selected": {
-                    "background-color": "#DBEAFE",
-                    "color": "#0F172A",
-                    "font-weight": "700",
-                    "border-left": "4px solid #2563EB",
-                    "icon-color": "#2563EB",
-                },
-            }
-        else:
-            _om_styles = {
-                "container": {
-                    "padding": "0 !important",
-                    "background-color": "transparent",
-                },
-                "icon": {
-                    "color": "#94A3B8",
-                    "font-size": "15px",
-                },
-                "nav-link": {
-                    "font-size": "13px",
-                    "text-align": "left",
-                    "margin": "4px 0",
-                    "padding": "10px 14px",
-                    "border-radius": "12px",
-                    "background-color": "transparent",
-                    "color": "#CBD5E1",
-                    "font-weight": "400",
-                },
-                "nav-link-selected": {
-                    "background-color": "#273449",
-                    "color": "#F8FAFC",
-                    "font-weight": "700",
-                },
-            }
-        section = option_menu(
-            menu_title=None,
-            options=_nav_options,
-            icons=_nav_icons,
-            default_index=0,
-            styles=_om_styles,
-        )
-    else:
-        section = st.radio(
-            "Navegacion",
-            _nav_options,
-            label_visibility="collapsed",
-        )
+    # Guard: if stored selection is no longer valid for current role, reset to first
+    if st.session_state.get("main_nav") not in _nav_options:
+        st.session_state["main_nav"] = _nav_options[0]
+
+    section = st.radio(
+        "Navegacion",
+        _nav_options,
+        key="main_nav",
+        label_visibility="collapsed",
+    )
 
     st.divider()
 
