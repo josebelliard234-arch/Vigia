@@ -19,8 +19,8 @@ _DARK = {
     "bds":       "rgba(148,163,184,0.28)",
     "shadow":    "rgba(0,0,0,0.25)",
     "hdr_bg":    "rgba(15,23,42,0.88)",
-    "side_bg1":  "rgba(17,24,39,0.98)",
-    "side_bg2":  "rgba(15,23,42,0.98)",
+    "side_bg1":  "#111827",
+    "side_bg2":  "#0F172A",
     "scroll_tr": "#111827",
     "scroll_th": "#4B5563",
     "fw_body":   "400",
@@ -32,24 +32,188 @@ _LIGHT = {
     "bg_card":   "rgba(255,255,255,0.96)",
     "bg_subtle": "rgba(241,245,249,0.85)",
     "bg_solid":  "#FFFFFF",
-    "t0":        "#0F172A",      # near-black — max contrast
-    "t1":        "#1E293B",      # dark secondary
-    "t2":        "#475569",      # muted — 5.9:1 on white (WCAG AA)
-    "t3":        "#64748B",      # captions — 4.6:1 on white (WCAG AA)
+    "t0":        "#0F172A",
+    "t1":        "#1E293B",
+    "t2":        "#475569",      # 5.9:1 on white — WCAG AA
+    "t3":        "#64748B",      # 4.6:1 on white — WCAG AA
     "bd":        "rgba(15,23,42,0.12)",
     "bdm":       "rgba(15,23,42,0.18)",
     "bds":       "rgba(15,23,42,0.26)",
     "shadow":    "rgba(15,23,42,0.08)",
-    "hdr_bg":    "rgba(248,250,252,0.95)",
-    "side_bg1":  "#F1F5F9",
+    "hdr_bg":    "rgba(248,250,252,0.96)",
+    "side_bg1":  "#EEF2FF",
     "side_bg2":  "#E2E8F0",
     "scroll_tr": "#F1F5F9",
     "scroll_th": "#CBD5E1",
-    "fw_body":   "500",          # slightly medium weight for legibility
+    "fw_body":   "500",
 }
 
 
-def _build_css(C: dict) -> str:
+def _build_css(C: dict, mode: str) -> str:
+    is_light = mode == "light"
+
+    # ── Light-mode overrides for Streamlit native elements ──
+    # Injected unconditionally (not via data-theme attr) so they
+    # apply immediately on rerun without waiting for the iframe script.
+    _light_native = f"""
+/* ════ LIGHT MODE — Streamlit native element overrides ════ */
+
+/* App background */
+.stApp {{
+    background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+    color: #0F172A !important;
+}}
+
+/* Header */
+[data-testid="stHeader"] {{
+    background: rgba(248,250,252,0.96) !important;
+    border-bottom: 1px solid rgba(15,23,42,0.12) !important;
+}}
+
+/* Sidebar — target all possible levels */
+[data-testid="stSidebar"] {{
+    background: linear-gradient(180deg, #F0F4FF, #E2E8F0) !important;
+    background-color: #EEF2FF !important;
+    border-right: 1px solid rgba(15,23,42,0.12) !important;
+}}
+[data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div > div,
+[data-testid="stSidebar"] > div:first-child {{
+    background: transparent !important;
+    background-color: transparent !important;
+}}
+
+/* Select + MultiSelect control */
+[data-baseweb="select"] > div {{
+    background-color: #FFFFFF !important;
+    border-color: rgba(15,23,42,0.22) !important;
+}}
+[data-baseweb="select"] > div > div,
+[data-baseweb="select"] > div > div > div {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}}
+/* Text inside select */
+[data-baseweb="select"] div[class],
+[data-baseweb="select"] span {{
+    color: #0F172A !important;
+}}
+
+/* Text inputs */
+[data-baseweb="base-input"] {{
+    background-color: #FFFFFF !important;
+}}
+[data-baseweb="base-input"] input,
+[data-baseweb="input"] input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}}
+
+/* Textarea */
+textarea {{
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}}
+
+/* Dropdown popover list */
+div[role="listbox"],
+ul[data-baseweb="menu"] {{
+    background-color: #FFFFFF !important;
+    border-color: rgba(15,23,42,0.15) !important;
+}}
+li[role="option"] {{
+    color: #0F172A !important;
+    background-color: #FFFFFF !important;
+}}
+li[role="option"]:hover {{
+    background-color: #F1F5F9 !important;
+}}
+li[aria-selected="true"] {{
+    background-color: #EFF6FF !important;
+    color: {BLUE} !important;
+}}
+
+/* Multiselect tags */
+[data-baseweb="tag"] {{
+    background-color: {BLUE}18 !important;
+    border-color: {BLUE}44 !important;
+}}
+[data-baseweb="tag"] span {{
+    color: {BLUE} !important;
+}}
+
+/* Labels and body text */
+label {{
+    color: #0F172A !important;
+    font-weight: 600 !important;
+}}
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] span:not([style]) {{
+    color: #0F172A !important;
+    font-weight: 500 !important;
+}}
+[data-testid="stText"] {{
+    color: #0F172A !important;
+}}
+.stCaption, [data-testid="stCaptionContainer"] p {{
+    color: #475569 !important;
+}}
+h1, h2, h3, h4, h5, h6,
+[data-testid="stSubheader"],
+[data-testid="stHeadingContainer"] {{
+    color: #0F172A !important;
+}}
+
+/* Dividers */
+hr, [data-testid="stDivider"] {{
+    border-color: rgba(15,23,42,0.14) !important;
+}}
+
+/* Expander */
+[data-testid="stExpander"] {{
+    background: rgba(241,245,249,0.90) !important;
+    border-color: rgba(15,23,42,0.12) !important;
+}}
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span {{
+    color: #0F172A !important;
+    font-weight: 600 !important;
+}}
+
+/* Sidebar-specific text */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span:not([style]),
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {{
+    color: #1E293B !important;
+}}
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] .stCaption {{
+    color: #475569 !important;
+}}
+
+/* File uploader */
+[data-testid="stFileUploadDropzone"] {{
+    background-color: #F8FAFC !important;
+    border-color: rgba(15,23,42,0.20) !important;
+}}
+
+/* Number input */
+[data-testid="stNumberInput"] [data-baseweb="input"] {{
+    background-color: #FFFFFF !important;
+}}
+
+/* Radio + Checkbox labels */
+[data-testid="stRadio"] label,
+[data-testid="stCheckbox"] label {{
+    color: #1E293B !important;
+}}
+""" if is_light else ""
+
     return f'''
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -91,127 +255,40 @@ html, body, [class*="css"] {{
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: {C["fw_body"]};
 }}
-p, label, span, div {{
-    color: var(--t0);
-}}
 
 /* ── App background ───────────────────────────────────────── */
 .stApp {{
-    background: linear-gradient(180deg, var(--bg-app) 0%, var(--bg-sec) 100%) !important;
+    background: linear-gradient(180deg, var(--bg-app) 0%, var(--bg-sec) 100%);
     color: var(--t0);
 }}
 
 /* ── Header ───────────────────────────────────────────────── */
 [data-testid="stHeader"] {{
-    background: {C["hdr_bg"]} !important;
+    background: {C["hdr_bg"]};
     backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--bdm);
 }}
 
-/* ── Sidebar — force background with high specificity ─────── */
-section[data-testid="stSidebar"],
-section[data-testid="stSidebar"] > div:first-child {{
+/* ── Sidebar (dark mode defaults) ─────────────────────────── */
+[data-testid="stSidebar"] {{
     background: linear-gradient(180deg, {C["side_bg1"]}, {C["side_bg2"]}) !important;
     background-color: {C["side_bg1"]} !important;
-    border-right: 1px solid var(--bdm) !important;
+    border-right: 1px solid var(--bdm);
 }}
-section[data-testid="stSidebar"] * {{
-    color: var(--t0);
-}}
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] .stMarkdown p,
-section[data-testid="stSidebar"] h3 {{
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] h3 {{
     color: var(--t0) !important;
-    font-weight: 600 !important;
 }}
-section[data-testid="stSidebar"] small,
-section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {{
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] .stCaption {{
     color: var(--t2) !important;
-    font-weight: {C["fw_body"]} !important;
-}}
-section[data-testid="stSidebar"] .stDivider {{
-    border-color: var(--bdm) !important;
 }}
 
 .block-container {{
     padding-top: 1.5rem;
     padding-bottom: 3rem;
     max-width: 1500px;
-}}
-
-/* ── Streamlit native form elements — use CSS vars ────────── */
-/* Select boxes */
-[data-baseweb="select"] > div:first-child {{
-    background-color: var(--bg-solid) !important;
-    border-color: var(--bdm) !important;
-    color: var(--t0) !important;
-}}
-[data-baseweb="select"] > div:first-child > div {{
-    color: var(--t0) !important;
-}}
-/* Text inputs */
-[data-baseweb="base-input"],
-[data-baseweb="input"] {{
-    background-color: var(--bg-solid) !important;
-    color: var(--t0) !important;
-}}
-input, textarea {{
-    color: var(--t0) !important;
-    background-color: var(--bg-solid) !important;
-    font-weight: {C["fw_body"]} !important;
-}}
-/* Placeholder */
-::placeholder {{
-    color: var(--t3) !important;
-    opacity: 1 !important;
-}}
-/* Multiselect tags */
-[data-baseweb="tag"] {{
-    background-color: {BLUE}22 !important;
-    color: {BLUE} !important;
-}}
-[data-baseweb="tag"] span {{
-    color: {BLUE} !important;
-}}
-/* Dropdown popover */
-div[role="listbox"],
-ul[data-baseweb="menu"] {{
-    background-color: var(--bg-solid) !important;
-    border-color: var(--bdm) !important;
-}}
-li[role="option"] {{
-    color: var(--t0) !important;
-    background-color: transparent !important;
-    font-weight: {C["fw_body"]} !important;
-}}
-li[role="option"]:hover,
-li[aria-selected="true"] {{
-    background-color: var(--bg-subtle) !important;
-}}
-/* Select box wrapper highlight */
-[data-testid="stSelectbox"] > div > div,
-[data-testid="stMultiSelect"] > div > div {{
-    border-color: var(--bdm) !important;
-}}
-
-/* ── General text elements ────────────────────────────────── */
-[data-testid="stMarkdownContainer"] p,
-[data-testid="stMarkdownContainer"] li,
-.stMarkdown p {{
-    color: var(--t0) !important;
-    font-weight: {C["fw_body"]} !important;
-}}
-[data-testid="stText"] {{
-    color: var(--t0) !important;
-}}
-.stCaption, [data-testid="stCaptionContainer"] {{
-    color: var(--t2) !important;
-}}
-h1, h2, h3, h4, h5, h6 {{
-    color: var(--t0) !important;
-}}
-[data-testid="stSubheader"] {{
-    color: var(--t0) !important;
 }}
 
 /* ── Sticky header card ───────────────────────────────────── */
@@ -297,15 +374,6 @@ h1, h2, h3, h4, h5, h6 {{
     border-radius: 18px;
     background: var(--bg-subtle);
 }}
-[data-testid="stExpander"] summary {{
-    color: var(--t0) !important;
-    font-weight: 600;
-}}
-
-/* ── Divider ──────────────────────────────────────────────── */
-hr, [data-testid="stDivider"] {{
-    border-color: var(--bdm) !important;
-}}
 
 /* ── Scrollbar ────────────────────────────────────────────── */
 ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
@@ -316,6 +384,8 @@ hr, [data-testid="stDivider"] {{
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes fadeIn  {{ from {{ opacity: 0; transform: translateY(8px);          }} to {{ opacity: 1; transform: translateY(0);       }} }}
 @keyframes floatIn {{ from {{ opacity: 0; transform: translateY(10px) scale(.99); }} to {{ opacity: 1; transform: translateY(0) scale(1); }} }}
+
+{_light_native}
 </style>
 '''
 
@@ -327,11 +397,11 @@ def apply_css():
     except Exception:
         mode = "dark"
     C = _LIGHT if mode == "light" else _DARK
-    st.markdown(_build_css(C), unsafe_allow_html=True)
+    st.markdown(_build_css(C, mode), unsafe_allow_html=True)
 
 
 def inject_theme_script():
-    """Set data-theme attribute on the HTML element via iframe script."""
+    """Set data-theme attribute on the HTML element for any CSS using html[data-theme] selectors."""
     try:
         mode = st.session_state.get("theme_mode", "dark")
     except Exception:

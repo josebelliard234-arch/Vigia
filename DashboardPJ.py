@@ -161,6 +161,7 @@ with st.sidebar:
                 "icon":            {"color": "#64748B" if _lm else "#94A3B8", "font-size": "16px"},
                 "nav-link":        {"font-size": "13px", "text-align": "left", "margin": "4px 0",
                                     "border-radius": "12px",
+                                    "background-color": "transparent",
                                     "color": "#374151" if _lm else "#CBD5E1",
                                     "font-weight": "500" if _lm else "400"},
                 "nav-link-selected": {
