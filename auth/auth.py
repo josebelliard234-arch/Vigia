@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import text
 
 from data.database import get_conn, get_engine, _is_postgres, log_action
+from styles.theme import get_mode
 
 
 # ============================================================
@@ -390,20 +391,40 @@ def _render_login():
 # ============================================================
 def render_sidebar_user():
     username = st.session_state.get("username", "")
-    rol = st.session_state.get("rol", "")
-    rol_color = {"Administrador": "#DC2626", "Visualizador": "#64748B"}.get(rol, "#94A3B8")
+    rol      = st.session_state.get("rol", "")
+    is_lm    = get_mode() == "light"
+
+    # Card container
+    card_bg     = "rgba(255,255,255,0.78)" if is_lm else "var(--card-bg)"
+    card_border = "#CBD5E1"                if is_lm else "var(--border)"
+    card_shadow = "0 8px 24px rgba(15,23,42,0.08)" if is_lm else "none"
+    text_main   = "#0F172A"  if is_lm else "var(--text-primary)"
+    text_sub    = "#334155"  if is_lm else "var(--text-muted)"
+
+    # Role badge
+    if rol == "Administrador":
+        badge_bg  = "#FEE2E2" if is_lm else "rgba(220,38,38,0.15)"
+        badge_fg  = "#DC2626"
+        badge_bd  = "#FCA5A5" if is_lm else "rgba(220,38,38,0.30)"
+    else:
+        badge_bg  = "#F1F5F9" if is_lm else "rgba(148,163,184,0.15)"
+        badge_fg  = "#475569" if is_lm else "#94A3B8"
+        badge_bd  = "#CBD5E1" if is_lm else "rgba(148,163,184,0.25)"
 
     st.markdown(
-        f"<div style='padding:.55rem .75rem;border-radius:12px;"
-        f"background:var(--bg-card);border:1px solid var(--bdm);"
-        f"margin-bottom:.6rem;'>"
-        f"<div style='font-size:.72rem;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;'>Usuario activo</div>"
-        f"<div style='font-size:.95rem;font-weight:700;color:var(--t0);margin-top:.1rem;'>{username}</div>"
-        f"<div style='margin-top:.15rem;'>"
-        f"<span style='background:{rol_color}22;color:{rol_color};font-size:.7rem;font-weight:700;"
-        f"padding:.12rem .45rem;border-radius:999px;border:1px solid {rol_color}44;'>{rol}</span>"
+        f"<div style='padding:.6rem .8rem;border-radius:14px;"
+        f"background:{card_bg};border:1px solid {card_border};"
+        f"box-shadow:{card_shadow};margin-bottom:.65rem;'>"
+        f"<div style='font-size:.70rem;color:{text_sub};text-transform:uppercase;"
+        f"letter-spacing:.07em;font-weight:600;'>Usuario activo</div>"
+        f"<div style='font-size:.95rem;font-weight:700;color:{text_main};"
+        f"margin-top:.15rem;'>{username}</div>"
+        f"<div style='margin-top:.2rem;'>"
+        f"<span style='background:{badge_bg};color:{badge_fg};font-size:.7rem;"
+        f"font-weight:700;padding:.1rem .5rem;border-radius:999px;"
+        f"border:1px solid {badge_bd};'>{rol}</span>"
         f"</div></div>",
         unsafe_allow_html=True,
     )
-    if st.button("Cerrar sesion", key="btn_logout", use_container_width=True):
+    if st.button("Cerrar sesion", key="btn_logout", use_container_width=True, type="primary"):
         logout()

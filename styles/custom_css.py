@@ -20,6 +20,15 @@ def _build_css(T: dict, mode: str) -> str:
     _native = f"""
 /* ════ LIGHT MODE — Streamlit native element overrides ════ */
 
+/* Override Streamlit's own theming CSS variables.
+   Streamlit uses these internally (e.g. --secondary-background-color for
+   the sidebar), so overriding them here is the most reliable sidebar fix. */
+:root {{
+    --secondary-background-color: {T["SIDEBAR_BG"]} !important;
+    --background-color:           {T["MAIN_BG"]}    !important;
+    --text-color:                 {T["TEXT_PRIMARY"]} !important;
+}}
+
 .stApp {{
     background: linear-gradient(180deg, {T["MAIN_BG"]} 0%, {T["SIDEBAR_BG_2"]} 100%) !important;
     color: {T["TEXT_PRIMARY"]} !important;
@@ -29,17 +38,58 @@ def _build_css(T: dict, mode: str) -> str:
     border-bottom: 1px solid {T["BORDER_SOFT"]} !important;
 }}
 
-/* Sidebar */
+/* ── SIDEBAR — all known selectors for Streamlit 1.x ─────────
+   Outer shell gets the gradient; every inner wrapper → transparent.
+   section[data-testid] has tag+attr specificity (0,1,1) which beats
+   Streamlit's plain attribute-only selectors. */
+section[data-testid="stSidebar"],
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, {T["SIDEBAR_BG"]}, {T["SIDEBAR_BG_2"]}) !important;
+    background: linear-gradient(180deg, {T["SIDEBAR_BG"]} 0%, {T["SIDEBAR_BG_2"]} 100%) !important;
     background-color: {T["SIDEBAR_BG"]} !important;
     border-right: 1px solid {T["BORDER_SOFT"]} !important;
+    color: {T["TEXT_PRIMARY"]} !important;
 }}
+
+/* All inner wrappers → transparent so the gradient from the shell shows */
 [data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div:first-child,
 [data-testid="stSidebar"] > div > div,
-[data-testid="stSidebar"] > div:first-child {{
+[data-testid="stSidebar"] section,
+[data-testid="stSidebar"] [data-testid="stSidebarContent"],
+[data-testid="stSidebar"] [data-testid="stSidebarUserContent"],
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
     background: transparent !important;
     background-color: transparent !important;
+}}
+
+/* ── SIDEBAR BUTTONS ─────────────────────────────────────────
+   Primary (type="primary") → solid blue (logout, import, confirm).
+   Secondary / default       → glass pill (theme toggle, small actions). */
+[data-testid="stSidebar"] button[kind="primary"] {{
+    background: {T["PRIMARY"]} !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    width: 100% !important;
+    box-shadow: 0 4px 14px {T["PRIMARY"]}44 !important;
+}}
+[data-testid="stSidebar"] button[kind="primary"]:hover {{
+    background: {T["PRIMARY_HOVER"]} !important;
+    box-shadow: 0 6px 18px {T["PRIMARY"]}55 !important;
+}}
+[data-testid="stSidebar"] button:not([kind="primary"]) {{
+    background: rgba(255,255,255,0.72) !important;
+    border: 1px solid {T["BORDER"]} !important;
+    color: {T["TEXT_PRIMARY"]} !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px {T["SHADOW"]} !important;
+}}
+[data-testid="stSidebar"] button:not([kind="primary"]):hover {{
+    background: rgba(255,255,255,0.90) !important;
+    border-color: {T["PRIMARY"]} !important;
+    color: {T["PRIMARY"]} !important;
 }}
 
 /* Select + MultiSelect */
