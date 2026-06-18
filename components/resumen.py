@@ -2,10 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-from styles.theme import (
-    TEXT_MAIN, TEXT_SECONDARY, TEXT_MUTED,
-    BLUE, GREEN, RED, YELLOW,
-)
+from styles.theme import BLUE, GREEN, RED, YELLOW
 from utils.dates import fmt_sem
 from utils.formatting import fmt_rdp
 
@@ -17,16 +14,14 @@ def render_header(semana_actual, semana_comp, registros, promedio, fuente_actual
     sem_act    = fmt_sem(semana_actual, "corta") if semana_actual else "N/D"
     sem_cmp    = fmt_sem(semana_comp,   "corta") if semana_comp   else "N/D"
 
-    # Precio actual
     promedio_txt = fmt_rdp(promedio) if (promedio is not None and not pd.isna(promedio)) else "N/D"
 
-    # Variacion vs semana comparada
     if (promedio is not None and not pd.isna(promedio) and
             promedio_comp is not None and not pd.isna(promedio_comp) and promedio_comp != 0):
         var_abs   = promedio - promedio_comp
         var_pct   = var_abs / promedio_comp * 100
         signo     = "+" if var_abs > 0 else ("-" if var_abs < 0 else "")
-        color_var = RED if var_abs > 0 else (GREEN if var_abs < 0 else TEXT_MUTED)
+        color_var = RED if var_abs > 0 else (GREEN if var_abs < 0 else "var(--text-muted)")
         var_html  = (
             '<span style="color:' + color_var + ';font-size:0.95rem;font-weight:700;">'
             + signo + " " + fmt_rdp(abs(var_abs)) + " (" + f"{var_pct:+.1f}%" + ")"
@@ -34,10 +29,9 @@ def render_header(semana_actual, semana_comp, registros, promedio, fuente_actual
         )
         comp_precio_txt = fmt_rdp(promedio_comp)
     else:
-        var_html        = '<span style="color:' + TEXT_MUTED + ';font-size:0.88rem;">Sin dato comparado</span>'
+        var_html        = '<span style="color:var(--text-muted);font-size:0.88rem;">Sin dato comparado</span>'
         comp_precio_txt = "N/D"
 
-    # Etiquetas del producto
     if producto_sel:
         prod_label  = producto_sel
         pres_label  = presentacion_sel or "Todas las presentaciones"
@@ -47,7 +41,6 @@ def render_header(semana_actual, semana_comp, registros, promedio, fuente_actual
         pres_label  = ""
         nota_precio = "promedio general"
 
-    # Construir HTML por concatenacion
     html = (
         '<div class="premium-header">'
 
@@ -56,9 +49,9 @@ def render_header(semana_actual, semana_comp, registros, promedio, fuente_actual
         '<div>'
         '<div class="header-title">Visualizacion de Datos - Supermercados Santo Domingo</div>'
         '</div>'
-        '<div style="text-align:right;color:' + TEXT_MUTED + ';font-size:.86rem;">'
-        'Semana actual: <b style="color:' + TEXT_MAIN + ';">' + sem_act + '</b><br>'
-        'Actualizado: <b style="color:' + TEXT_MAIN + ';">' + updated + '</b>'
+        '<div style="text-align:right;color:var(--text-muted);font-size:.86rem;">'
+        'Semana actual: <b style="color:var(--text-primary);">' + sem_act + '</b><br>'
+        'Actualizado: <b style="color:var(--text-primary);">' + updated + '</b>'
         '</div>'
         '</div>'
 
@@ -102,13 +95,13 @@ def render_header(semana_actual, semana_comp, registros, promedio, fuente_actual
 def render_franja_compacta(sa_lbl, sc_lbl, prod_label, promedio, promedio_comp, fuente_actual):
     """Franja compacta de una linea -- siempre visible en todas las pestanas."""
     var_txt   = "N/D"
-    color_var = TEXT_MUTED
+    color_var = "var(--text-muted)"
     if (promedio is not None and not pd.isna(promedio)
             and promedio_comp is not None and not pd.isna(promedio_comp)
             and promedio_comp != 0):
         var_pct   = (promedio - promedio_comp) / promedio_comp * 100
         var_txt   = f"{var_pct:+.1f}%"
-        color_var = RED if var_pct > 0 else (GREEN if var_pct < 0 else TEXT_MUTED)
+        color_var = RED if var_pct > 0 else (GREEN if var_pct < 0 else "var(--text-muted)")
 
     fuente_badge = (
         f' <span style="background:rgba(245,158,11,0.18);color:{YELLOW};'
@@ -119,14 +112,14 @@ def render_franja_compacta(sa_lbl, sc_lbl, prod_label, promedio, promedio_comp, 
 
     st.markdown(
         f'<div style="padding:.42rem 1rem;border-radius:12px;'
-        f'background:rgba(30,41,59,0.55);border:1px solid rgba(148,163,184,0.12);'
-        f'margin-bottom:.55rem;font-size:.81rem;color:{TEXT_MUTED};'
+        f'background:var(--glass-bg);border:1px solid var(--border-soft);'
+        f'margin-bottom:.55rem;font-size:.81rem;color:var(--text-muted);'
         f'display:flex;flex-wrap:wrap;gap:.25rem .55rem;align-items:center;">'
-        f'<span>Actual: <b style="color:{TEXT_MAIN};">{sa_lbl}</b>{fuente_badge}</span>'
+        f'<span>Actual: <b style="color:var(--text-primary);">{sa_lbl}</b>{fuente_badge}</span>'
         f'<span style="opacity:.3;">·</span>'
-        f'<span>Comparada: <b style="color:{TEXT_MAIN};">{sc_lbl}</b></span>'
+        f'<span>Comparada: <b style="color:var(--text-primary);">{sc_lbl}</b></span>'
         f'<span style="opacity:.3;">·</span>'
-        f'<span>Producto: <b style="color:{TEXT_MAIN};">{prod_label}</b></span>'
+        f'<span>Producto: <b style="color:var(--text-primary);">{prod_label}</b></span>'
         f'<span style="opacity:.3;">·</span>'
         f'<span>Variación: <b style="color:{color_var};">{var_txt}</b></span>'
         f'</div>',
@@ -163,7 +156,6 @@ def render_resumen_general(semana_actual, semana_comp, registros, promedio,
         delta_rdp = f"{'+' if var_abs >= 0 else ''}{fmt_rdp(var_abs)}"
         delta_pct = f"{var_pct:+.1f}%"
 
-    # -- Fila 1: semanas, producto, registros --
     r1, r2, r3, r4 = st.columns(4)
     r1.metric(
         "Semana actual",
@@ -188,7 +180,6 @@ def render_resumen_general(semana_actual, semana_comp, registros, promedio,
 
     st.markdown("<div style='margin:.4rem 0'></div>", unsafe_allow_html=True)
 
-    # -- Fila 2: precios, variacion, fuente --
     s1, s2, s3, s4 = st.columns(4)
     s1.metric(
         "Precio prom. actual",
@@ -213,7 +204,6 @@ def render_resumen_general(semana_actual, semana_comp, registros, promedio,
         help="Bruto = reporte semanal sin validar. Validado = historial oficial procesado."
     )
 
-    # -- Nota de contexto --
     notas = [f"Actualizado: {updated}", "Calculado segun los filtros aplicados"]
     if fuente_actual == "bruto":
         notas.append(f"Semana actual ({sa_lbl_l}) usa datos brutos")

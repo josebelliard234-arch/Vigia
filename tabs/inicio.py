@@ -7,6 +7,7 @@ from utils.formatting import fmt_rdp
 from utils.transformations import normalizar_categoria
 from components.charts import apply_dark_layout
 from styles.theme import TEXT_MAIN, TEXT_SECONDARY, TEXT_MUTED, RED, GREEN, YELLOW, BLUE
+from styles.theme import get_theme_tokens, get_mode as _get_mode
 
 
 # ── Helpers visuales ──────────────────────────────────────────
@@ -242,12 +243,11 @@ def render_inicio(ctx):
         textfont=dict(size=11, family="Inter"),
     ))
 
-    from components.charts import _is_light as _chart_light
-    _light = _chart_light()
-    _tc   = "#1E293B" if _light else TEXT_SECONDARY
-    _tm   = "#64748B" if _light else TEXT_MUTED
-    _zc   = "rgba(15,23,42,0.20)" if _light else "rgba(248,250,252,0.35)"
-    _tc_title = "#0F172A" if _light else TEXT_MAIN
+    _CT = get_theme_tokens(_get_mode())
+    _tc       = _CT["CHART_TEXT"]
+    _tm       = _CT["CHART_MUTED"]
+    _zc       = _CT["CHART_ZEROLINE"]
+    _tc_title = _CT["CHART_TEXT"]
 
     max_abs = df_chart["pct_cambio"].abs().max() or 1
     fig.update_layout(

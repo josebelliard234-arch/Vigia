@@ -9,6 +9,7 @@ from data.database import (
     is_postgres,
 )
 from utils.dates import fmt_sem
+from styles.theme import get_theme_tokens, get_mode
 
 _COLORES = {
     "🟡 Amarillo — atencion":  "#D97706",
@@ -363,17 +364,18 @@ def render_edicion_datos():
             st.session_state["_ed_ag_df"]   = df_ag.copy()
             st.session_state["_ed_ag_ckey"] = _ag_ck
 
-        # ── JS: estilos condicionales ─────────────────────────────────
-        _js_px_style = JsCode("""
-        function(params) {
+        # ── JS: estilos condicionales — colors from centralized token system ──
+        _T = get_theme_tokens(get_mode())
+        _js_px_style = JsCode(f"""
+        function(params) {{
             if (params.value == null || params.value <= 0) return null;
             var p = params.data._prom_raw_;
             if (!p || p <= 0) return null;
             var d = (params.value - p) / p * 100;
-            if (d > 15)  return {backgroundColor:'#450a0a', color:'#fca5a5', fontWeight:'700'};
-            if (d < -15) return {backgroundColor:'#172554', color:'#93c5fd', fontWeight:'700'};
+            if (d > 15)  return {{backgroundColor:'{_T["GRID_HIGH_BG"]}', color:'{_T["GRID_HIGH_FG"]}', fontWeight:'700'}};
+            if (d < -15) return {{backgroundColor:'{_T["GRID_LOW_BG"]}', color:'{_T["GRID_LOW_FG"]}', fontWeight:'700'}};
             return null;
-        }
+        }}
         """)
         _js_px_fmt = JsCode("""
         function(params) {
@@ -393,24 +395,24 @@ def render_edicion_datos():
                    '  |  Desv: ' + s + d + '%';
         }
         """)
-        _js_dt_style = JsCode("""
-        function(params) {
+        _js_dt_style = JsCode(f"""
+        function(params) {{
             var r = params.data._delta_raw_;
-            if (r == null || isNaN(r)) return {color:'#64748b'};
-            if (r > 3)  return {color:'#f87171', fontWeight:'600'};
-            if (r < -3) return {color:'#4ade80', fontWeight:'600'};
-            return {color:'#94a3b8'};
-        }
+            if (r == null || isNaN(r)) return {{color:'{_T["GRID_DELTA_NEU"]}'}};
+            if (r > 3)  return {{color:'{_T["GRID_DELTA_POS"]}', fontWeight:'600'}};
+            if (r < -3) return {{color:'{_T["GRID_DELTA_NEG"]}', fontWeight:'600'}};
+            return {{color:'{_T["GRID_DELTA_FAINT"]}'}};
+        }}
         """)
-        _js_ot_style = JsCode("""
-        function(params) {
+        _js_ot_style = JsCode(f"""
+        function(params) {{
             if (!params.value) return null;
             if (params.value.indexOf('▲') >= 0)
-                return {color:'#f87171', fontWeight:'700'};
+                return {{color:'{_T["GRID_OT_HIGH"]}', fontWeight:'700'}};
             if (params.value.indexOf('▼') >= 0)
-                return {color:'#93c5fd', fontWeight:'700'};
+                return {{color:'{_T["GRID_OT_LOW"]}', fontWeight:'700'}};
             return null;
-        }
+        }}
         """)
 
         # ── Construir gridOptions ─────────────────────────────────────

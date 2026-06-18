@@ -8,7 +8,7 @@ from utils.dates import fmt_sem, semana_label_a_datetime, ordenar_semanas_iso
 from utils.formatting import fmt_rdp, fmt_pct
 from utils.transformations import proyeccion_despues_de_semana_corte
 from data.loader import parsear_fecha_usuario
-from components.charts import plot_bg, _is_light as _chart_light
+from components.charts import plot_bg, _is_light as _chart_light, apply_dark_layout
 _MESES    = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
              "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
@@ -337,6 +337,7 @@ def render_historial(ctx):
         tickfont=dict(size=10, color=TEXT_SECONDARY),
     )
 
+    apply_dark_layout(fig)
     st.plotly_chart(fig, use_container_width=True, config={
         "displayModeBar": True,
         "responsive": True,
