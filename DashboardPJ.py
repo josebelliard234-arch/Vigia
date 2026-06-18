@@ -150,6 +150,7 @@ with st.sidebar:
         ]
 
     if option_menu:
+        _lm = _mode == "light"
         section = option_menu(
             menu_title=None,
             options=_nav_options,
@@ -157,11 +158,16 @@ with st.sidebar:
             default_index=0,
             styles={
                 "container":       {"padding": "0!important", "background-color": "transparent"},
-                "icon":            {"color": "#94A3B8", "font-size": "16px"},
+                "icon":            {"color": "#64748B" if _lm else "#94A3B8", "font-size": "16px"},
                 "nav-link":        {"font-size": "13px", "text-align": "left", "margin": "4px 0",
-                                    "border-radius": "12px", "color": "#CBD5E1"},
-                "nav-link-selected": {"background-color": "#273449", "color": "#F8FAFC",
-                                      "font-weight": "700"},
+                                    "border-radius": "12px",
+                                    "color": "#374151" if _lm else "#CBD5E1",
+                                    "font-weight": "500" if _lm else "400"},
+                "nav-link-selected": {
+                    "background-color": "#CBD5E1" if _lm else "#273449",
+                    "color": "#0F172A" if _lm else "#F8FAFC",
+                    "font-weight": "700",
+                },
             },
         )
     else:
