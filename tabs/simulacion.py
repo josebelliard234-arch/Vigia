@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 
 from utils.dates import fmt_sem
@@ -120,7 +120,7 @@ def render_simulacion(ctx):
     st.markdown(
         "<div style='margin-top:1rem;padding:.5rem .8rem;border-radius:10px;"
         "background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);"
-        "font-size:.8rem;color:#F59E0B;'>"
+        "font-size:.8rem;color:#D97706;'>"
         "Estos datos son solo una simulacion. Ningun cambio fue guardado en la base de datos.</div>",
         unsafe_allow_html=True,
     )

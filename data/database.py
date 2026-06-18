@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 import sqlite3
 import pandas as pd
@@ -10,11 +10,11 @@ import streamlit as st
 
 DEMO_MODE = os.environ.get("DASHBOARD_PJ_DEMO", "0").strip().lower() in {"1", "true", "yes", "si"}
 
-ROLES_USUARIO = ["Administrador", "Visualizador"]
+ROLES_USUARIO = ["Administrador", "Digitador"]
 
 _ROL_COLOR = {
-    "Administrador": "#EF4444",
-    "Visualizador":  "#64748B",
+    "Administrador": "#DC2626",
+    "Digitador":     "#64748B",
 }
 
 _SQLITE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datos.db")
@@ -172,7 +172,7 @@ def init_db():
                 categoria    TEXT,
                 producto     TEXT,
                 presentacion TEXT,
-                color        TEXT DEFAULT '#F59E0B',
+                color        TEXT DEFAULT '#D97706',
                 nota         TEXT,
                 username     TEXT,
                 activo       INTEGER DEFAULT 1,
@@ -454,7 +454,7 @@ def load_audit_log(limit=500):
 # MARCADORES
 # ------------------------------------------------------------
 def save_marcador(semana, provincia, supermercado, categoria, producto, presentacion,
-                  color="#F59E0B", nota=""):
+                  color="#D97706", nota=""):
     username = "sistema"
     try:
         username = st.session_state.get("username", "sistema") or "sistema"

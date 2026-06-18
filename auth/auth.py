@@ -1,4 +1,4 @@
-import hashlib
+﻿import hashlib
 import os
 import sqlite3 as _sqlite3
 import pandas as pd
@@ -391,7 +391,7 @@ def _render_login():
 def render_sidebar_user():
     username = st.session_state.get("username", "")
     rol = st.session_state.get("rol", "")
-    rol_color = {"Administrador": "#EF4444", "Visualizador": "#64748B"}.get(rol, "#94A3B8")
+    rol_color = {"Administrador": "#DC2626", "Visualizador": "#64748B"}.get(rol, "#94A3B8")
 
     st.markdown(
         f"<div style='padding:.55rem .75rem;border-radius:12px;"

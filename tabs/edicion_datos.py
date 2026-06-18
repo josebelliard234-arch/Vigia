@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 from sqlalchemy import text
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode
@@ -11,19 +11,19 @@ from data.database import (
 from utils.dates import fmt_sem
 
 _COLORES = {
-    "🟡 Amarillo — atencion":  "#F59E0B",
-    "🔴 Rojo — problema":      "#EF4444",
-    "🟢 Verde — validado":     "#22C55E",
-    "🔵 Azul — pendiente":     "#3B82F6",
-    "🟠 Naranja — revisar":    "#F97316",
+    "🟡 Amarillo — atencion":  "#D97706",
+    "🔴 Rojo — problema":      "#DC2626",
+    "🟢 Verde — validado":     "#16A34A",
+    "🔵 Azul — pendiente":     "#2563EB",
+    "🟠 Naranja — revisar":    "#EA580C",
 }
 
 _EMOJI = {
-    "#F59E0B": "🟡",
-    "#EF4444": "🔴",
-    "#22C55E": "🟢",
-    "#3B82F6": "🔵",
-    "#F97316": "🟠",
+    "#D97706": "🟡",
+    "#DC2626": "🔴",
+    "#16A34A": "🟢",
+    "#2563EB": "🔵",
+    "#EA580C": "🟠",
 }
 
 # CSS inyectado cuando el modo ampliado está activo
@@ -759,7 +759,7 @@ def render_edicion_datos():
                             f"<span style='font-size:1.1rem;'>{emoji}</span>"
                             f"<span style='color:#F8FAFC;font-size:.82rem;font-weight:600;'>{prod_r}</span>"
                             f"<span style='color:#94A3B8;font-size:.78rem;'>{pres_r}</span>"
-                            f"<span style='color:#3B82F6;font-size:.78rem;font-weight:600;'>{sup_r}</span>"
+                            f"<span style='color:#2563EB;font-size:.78rem;font-weight:600;'>{sup_r}</span>"
                             + (f"<span style='color:#CBD5E1;font-size:.75rem;font-style:italic;'>\"{nota_r}\"</span>" if nota_r else "")
                             + f"<span style='color:#475569;font-size:.72rem;margin-left:auto;'>{user_r} · {ts_r}</span>"
                             f"</div>",

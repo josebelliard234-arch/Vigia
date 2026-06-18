@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
@@ -283,7 +283,7 @@ def render_historial(ctx):
                 y=df_min["precio"].tolist(),
                 mode="markers",
                 name="Minimo mensual",
-                marker=dict(size=11, color="#F59E0B", symbol="triangle-down",
+                marker=dict(size=11, color="#D97706", symbol="triangle-down",
                             line=dict(width=1.2, color="#FFF")),
                 customdata=[[_mes_label(s)] for s in df_min["semana"].tolist()],
                 hovertemplate=(

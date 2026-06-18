@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 
 from data.database import ROLES_USUARIO, _ROL_COLOR, get_engine, load_audit_log
@@ -9,8 +9,8 @@ from auth.auth import (
 
 # ── Utilidades visuales ───────────────────────────────────────
 _AVATAR_COLORS = [
-    "#3B82F6", "#8B5CF6", "#EC4899", "#F97316",
-    "#22C55E", "#EF4444", "#06B6D4", "#F59E0B",
+    "#2563EB", "#6D28D9", "#BE185D", "#EA580C",
+    "#16A34A", "#DC2626", "#0E7490", "#D97706",
 ]
 
 def _av_color(name: str) -> str:
@@ -26,7 +26,7 @@ def _avatar(name: str, size: int = 34) -> str:
     )
 
 _ROL_SHORT = {"Administrador": "Admin", "Visualizador": "Visualizador"}
-_ROL_BC    = {"Administrador": "#EF4444", "Visualizador": "#3B82F6"}
+_ROL_BC    = {"Administrador": "#DC2626", "Visualizador": "#2563EB"}
 
 def _badge(rol: str) -> str:
     c = _ROL_BC.get(rol, "#64748B")
@@ -139,10 +139,10 @@ def render_usuarios():
 
     m1, m2, m3, m4 = st.columns(4)
     for col, label, val, color, icon in [
-        (m1, "Usuarios totales",   total_u,  "#3B82F6", "👥"),
-        (m2, "Visualizadores",     views_u,  "#22C55E", "✏️"),
-        (m3, "Administradores",    admins_u, "#EF4444", "🛡️"),
-        (m4, "Provincias activas", n_provs,  "#F97316", "📍"),
+        (m1, "Usuarios totales",   total_u,  "#2563EB", "👥"),
+        (m2, "Visualizadores",     views_u,  "#16A34A", "✏️"),
+        (m3, "Administradores",    admins_u, "#DC2626", "🛡️"),
+        (m4, "Provincias activas", n_provs,  "#EA580C", "📍"),
     ]:
         col.markdown(
             f'<div style="padding:.85rem 1rem 1rem 1rem;border-radius:14px;'
@@ -189,13 +189,13 @@ def render_usuarios():
             nom_r = um.iloc[0]["nombre"] if not um.empty else row["usuario"]
             rol_r = um.iloc[0]["rol"]    if not um.empty else ""
             act_r = bool(um.iloc[0]["activo"]) if not um.empty else True
-            sc = "#22C55E" if act_r else "#F59E0B"
+            sc = "#16A34A" if act_r else "#D97706"
             rc = st.columns([.42, 2.8, 2.6, 1.5, 1.4])
             rc[0].markdown(_avatar(nom_r, 30), unsafe_allow_html=True)
             rc[1].markdown(
                 f'<div style="line-height:1.35;padding:.05rem 0;">'
                 f'<span style="font-size:.84rem;font-weight:600;color:#F8FAFC;">{nom_r}</span><br>'
-                f'<span style="font-size:.71rem;color:#3B82F6;font-family:monospace;">@{row["usuario"]}</span>'
+                f'<span style="font-size:.71rem;color:#2563EB;font-family:monospace;">@{row["usuario"]}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -277,7 +277,7 @@ def render_usuarios():
         rol    = str(u["rol"] or "")
         activo = u["activo"] == 1
         es_yo  = uid == current_uid
-        sc     = "#22C55E" if activo else "#F59E0B"
+        sc     = "#16A34A" if activo else "#D97706"
 
         rc = st.columns([.38, 3.2, 1.6, 1.2, .85])
         rc[0].markdown(_avatar(nombre or "?", 34), unsafe_allow_html=True)
@@ -287,7 +287,7 @@ def render_usuarios():
             + (f'<span style="margin-left:.35rem;font-size:.64rem;background:#172554;'
                f'color:#93C5FD;padding:.04rem .28rem;border-radius:4px;font-weight:700;">TÚ</span>'
                if es_yo else "")
-            + f'<br><span style="font-size:.72rem;color:#3B82F6;'
+            + f'<br><span style="font-size:.72rem;color:#2563EB;'
               f'font-family:monospace;">@{uname}</span>'
             f'</div>',
             unsafe_allow_html=True,

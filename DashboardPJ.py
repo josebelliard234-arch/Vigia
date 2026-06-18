@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # IMPORTS
 # ============================================================
 import streamlit as st
@@ -244,7 +244,7 @@ with st.sidebar:
                     f"background:rgba(30,41,59,0.55);'>"
                     f"<div style='font-size:.82rem;color:#F8FAFC;font-weight:600;"
                     f"word-break:break-word;'>{nombre_m or 'Archivo'}</div>"
-                    f"<div style='font-size:.92rem;color:#3B82F6;font-weight:700;"
+                    f"<div style='font-size:.92rem;color:#2563EB;font-weight:700;"
                     f"margin-top:.15rem;'>{fmt_sem(semana_m, 'corta')}</div>"
                     f"<div style='font-size:.72rem;color:#94A3B8;margin-top:.1rem;'>"
                     f"{registros_m:,} registros · {fecha_m}</div>"

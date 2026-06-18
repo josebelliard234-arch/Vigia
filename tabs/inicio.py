@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -306,9 +306,9 @@ def render_inicio(ctx):
     i1.markdown(
         f'<div style="padding:.65rem .9rem;border-radius:11px;'
         f'background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);">'
-        f'<div style="font-size:.67rem;color:#3B82F688;font-weight:700;'
+        f'<div style="font-size:.67rem;color:#2563EB88;font-weight:700;'
         f'text-transform:uppercase;letter-spacing:.05em;">Semana actual</div>'
-        f'<div style="font-size:1rem;font-weight:800;color:#3B82F6;margin:.15rem 0;">'
+        f'<div style="font-size:1rem;font-weight:800;color:#2563EB;margin:.15rem 0;">'
         f'{sa_lbl}{_fuente_badge(fuente_act)}</div>'
         f'<div style="font-size:.72rem;color:#475569;">{sa_lbl_l}</div>'
         f'</div>',
@@ -317,9 +317,9 @@ def render_inicio(ctx):
     i2.markdown(
         f'<div style="padding:.65rem .9rem;border-radius:11px;'
         f'background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);">'
-        f'<div style="font-size:.67rem;color:#8B5CF688;font-weight:700;'
+        f'<div style="font-size:.67rem;color:#6D28D988;font-weight:700;'
         f'text-transform:uppercase;letter-spacing:.05em;">Semana de referencia</div>'
-        f'<div style="font-size:1rem;font-weight:800;color:#8B5CF6;margin:.15rem 0;">'
+        f'<div style="font-size:1rem;font-weight:800;color:#6D28D9;margin:.15rem 0;">'
         f'{ref_lbl}</div>'
         f'<div style="font-size:.72rem;color:#475569;">{ref_lbl_l}</div>'
         f'</div>',
@@ -330,9 +330,9 @@ def render_inicio(ctx):
     i3.markdown(
         f'<div style="padding:.65rem .9rem;border-radius:11px;'
         f'background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);">'
-        f'<div style="font-size:.67rem;color:#F9731688;font-weight:700;'
+        f'<div style="font-size:.67rem;color:#EA580C88;font-weight:700;'
         f'text-transform:uppercase;letter-spacing:.05em;">Cobertura semana actual</div>'
-        f'<div style="font-size:1rem;font-weight:800;color:#F97316;margin:.15rem 0;">'
+        f'<div style="font-size:1rem;font-weight:800;color:#EA580C;margin:.15rem 0;">'
         f'{n_reg:,} registros</div>'
         f'<div style="font-size:.72rem;color:#475569;">{n_sups} supermercados</div>'
         f'</div>',

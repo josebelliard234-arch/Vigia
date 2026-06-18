@@ -29,10 +29,7 @@ html, body, [class*="css"] {{
 }}
 
 .stApp {{
-    background:
-        radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 32rem),
-        radial-gradient(circle at top right, rgba(16,185,129,0.10), transparent 26rem),
-        linear-gradient(180deg, {BG_MAIN} 0%, {BG_SECONDARY} 100%);
+    background: linear-gradient(180deg, {BG_MAIN} 0%, {BG_SECONDARY} 100%);
     color: {TEXT_MAIN};
 }}
 
@@ -116,16 +113,16 @@ html, body, [class*="css"] {{
 }}
 
 .stButton > button {{
-    border-radius: 14px !important;
-    border: 1px solid rgba(59,130,246,0.30) !important;
-    background: linear-gradient(135deg, {BLUE}, #2563EB) !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(37,99,235,0.40) !important;
+    background: {BLUE} !important;
     color: white !important;
-    font-weight: 700 !important;
-    transition: transform 160ms ease, box-shadow 160ms ease !important;
+    font-weight: 600 !important;
+    transition: opacity 150ms ease, box-shadow 150ms ease !important;
 }}
 .stButton > button:hover {{
-    transform: translateY(-1px);
-    box-shadow: 0 10px 28px rgba(59,130,246,0.28);
+    opacity: 0.88;
+    box-shadow: 0 6px 18px rgba(37,99,235,0.22);
 }}
 
 [data-testid="stExpander"] {{

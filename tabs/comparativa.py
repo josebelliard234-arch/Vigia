@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import plotly.graph_objects as go
 
 from styles.theme import (
@@ -11,11 +11,11 @@ from components.charts import apply_dark_layout
 from data.database import load_marcadores
 
 _EMOJI_MARC = {
-    "#F59E0B": "🟡",
-    "#EF4444": "🔴",
-    "#22C55E": "🟢",
-    "#3B82F6": "🔵",
-    "#F97316": "🟠",
+    "#D97706": "🟡",
+    "#DC2626": "🔴",
+    "#16A34A": "🟢",
+    "#2563EB": "🔵",
+    "#EA580C": "🟠",
 }
 
 

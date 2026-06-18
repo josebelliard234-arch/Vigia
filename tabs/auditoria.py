@@ -1,22 +1,22 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 from data.database import load_audit_log
 
 _ACCION_COLOR = {
-    "LOGIN":            "#22C55E",
-    "LOGIN_FAIL":       "#EF4444",
+    "LOGIN":            "#16A34A",
+    "LOGIN_FAIL":       "#DC2626",
     "LOGOUT":           "#94A3B8",
-    "UPLOAD":           "#3B82F6",
-    "DELETE":           "#F97316",
-    "WIPE":             "#EF4444",
+    "UPLOAD":           "#2563EB",
+    "DELETE":           "#EA580C",
+    "WIPE":             "#DC2626",
     "EDIT_PRICE":       "#A855F7",
     "BULK_EDIT_PRICE":  "#7C3AED",
-    "RESTORE_PRICES":   "#F97316",
-    "PRICE_ERROR":      "#EF4444",
-    "CREATE_USER":      "#22C55E",
-    "UPDATE_USER":      "#F59E0B",
-    "DELETE_USER":      "#EF4444",
-    "MARK_PRICE":       "#F59E0B",
+    "RESTORE_PRICES":   "#EA580C",
+    "PRICE_ERROR":      "#DC2626",
+    "CREATE_USER":      "#16A34A",
+    "UPDATE_USER":      "#D97706",
+    "DELETE_USER":      "#DC2626",
+    "MARK_PRICE":       "#D97706",
     "UNMARK_PRICE":     "#94A3B8",
 }
 
