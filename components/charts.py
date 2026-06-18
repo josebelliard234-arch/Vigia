@@ -13,8 +13,8 @@ def _is_light() -> bool:
 def apply_dark_layout(fig, title=None, height=None):
     """Apply theme-aware layout to a Plotly figure using centralized tokens.
 
-    Also walks all traces and replaces legacy dark-mode text colors in
-    textfont/font dicts so charts stay readable when light mode is active.
+    Patches trace textfont/font, axis tickfont/title_font, layout title font,
+    and annotation fonts that still contain legacy near-white dark-mode colors.
     """
     mode = get_mode()
     T = get_theme_tokens(mode)
@@ -33,22 +33,32 @@ def apply_dark_layout(fig, title=None, height=None):
         plot_bgcolor=T["CHART_BG"],
         paper_bgcolor=T["CHART_PAPER_BG"],
         font=dict(color=T["CHART_TEXT"], family="Inter"),
-        hoverlabel=dict(bgcolor=T["CHART_HOVER_BG"], font_size=12, font_family="Inter"),
+        hoverlabel=dict(
+            bgcolor=T["CHART_HOVER_BG"],
+            font_size=12,
+            font_family="Inter",
+            font_color=T["CHART_TEXT"],
+            bordercolor=T["BORDER"],
+        ),
         legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=T["CHART_TEXT"])),
     )
+    # tickfont/title_font override any explicit tickfont.color set per-axis in tab code.
     fig.update_xaxes(
         gridcolor=T["CHART_GRID"],
         zerolinecolor=T["CHART_ZEROLINE"],
         color=T["CHART_MUTED"],
+        tickfont=dict(color=T["CHART_MUTED"]),
+        title_font=dict(color=T["CHART_MUTED"]),
     )
     fig.update_yaxes(
         gridcolor=T["CHART_GRID"],
         zerolinecolor=T["CHART_ZEROLINE"],
         color=T["CHART_MUTED"],
+        tickfont=dict(color=T["CHART_MUTED"]),
+        title_font=dict(color=T["CHART_MUTED"]),
     )
 
     # Patch trace-level textfont/font that still use legacy dark constants.
-    # Accent colors (RED, BLUE, YELLOW, etc.) are intentional and left untouched.
     for trace in fig.data:
         for attr in ("textfont", "font"):
             try:
@@ -57,6 +67,21 @@ def apply_dark_layout(fig, title=None, height=None):
                     tf.color = T["CHART_TEXT"]
             except Exception:
                 pass
+
+    # Patch layout title font set directly in tab code.
+    try:
+        if fig.layout.title.font.color in _LEGACY_DARK_TEXT:
+            fig.layout.title.font.color = T["CHART_TEXT"]
+    except Exception:
+        pass
+
+    # Patch annotation fonts (bar labels, callouts, etc.) set in tab code.
+    for ann in (fig.layout.annotations or []):
+        try:
+            if ann.font.color in _LEGACY_DARK_TEXT:
+                ann.font.color = T["CHART_MUTED"]
+        except Exception:
+            pass
 
     if height:
         fig.update_layout(height=height)

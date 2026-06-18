@@ -74,7 +74,7 @@ _LIGHT_TOKENS: dict = {
 
     # ── Plotly / Chart ─────────────────────────────────────
     "CHART_BG":          "#FFFFFF",
-    "CHART_PAPER_BG":    "#F6F8FC",
+    "CHART_PAPER_BG":    "rgba(255,255,255,0)",
     "CHART_TEXT":        "#1E293B",
     "CHART_MUTED":       "#64748B",
     "CHART_GRID":        "rgba(15,23,42,0.08)",

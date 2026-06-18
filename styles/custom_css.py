@@ -533,6 +533,14 @@ hr, [data-testid="stDivider"] {{ border-color: {T["BORDER_SOFT"]} !important; }}
 }}
 [data-testid="stRadio"] label,
 [data-testid="stCheckbox"] label {{ color: {T["TEXT_SECONDARY"]} !important; }}
+
+/* ── Plotly chart container ──────────────────────────────── */
+[data-testid="stPlotlyChart"] {{
+    background: rgba(255,255,255,0.78) !important;
+    border: 1px solid {T["BORDER_SOFT"]} !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 30px rgba(15,23,42,0.06) !important;
+}}
 """ if is_light else ""
 
     return f'''
