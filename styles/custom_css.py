@@ -30,7 +30,10 @@ def _build_css(T: dict, mode: str) -> str:
 }}
 
 .stApp {{
-    background: linear-gradient(180deg, {T["MAIN_BG"]} 0%, {T["SIDEBAR_BG_2"]} 100%) !important;
+    background:
+        radial-gradient(circle at top left,  rgba(37,99,235,0.08),  transparent 30%),
+        radial-gradient(circle at top right, rgba(22,163,74,0.06),  transparent 28%),
+        #F6F8FC !important;
     color: {T["TEXT_PRIMARY"]} !important;
 }}
 [data-testid="stHeader"] {{
@@ -502,10 +505,16 @@ h1, h2, h3, h4, h5, h6,
 [data-testid="stHeadingContainer"] {{ color: {T["TEXT_PRIMARY"]} !important; }}
 hr, [data-testid="stDivider"] {{ border-color: {T["BORDER_SOFT"]} !important; }}
 
-/* Expander */
+/* Expander — glass panel */
 [data-testid="stExpander"] {{
-    background: {T["GLASS_BG"]} !important;
-    border-color: {T["BORDER_SOFT"]} !important;
+    background: rgba(255,255,255,0.72) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    border: 1px solid rgba(203,213,225,0.72) !important;
+    border-radius: 18px !important;
+    box-shadow:
+        0 12px 32px rgba(15,23,42,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.65) !important;
 }}
 [data-testid="stExpander"] summary p,
 [data-testid="stExpander"] summary span {{
@@ -534,12 +543,73 @@ hr, [data-testid="stDivider"] {{ border-color: {T["BORDER_SOFT"]} !important; }}
 [data-testid="stRadio"] label,
 [data-testid="stCheckbox"] label {{ color: {T["TEXT_SECONDARY"]} !important; }}
 
-/* ── Plotly chart container ──────────────────────────────── */
-[data-testid="stPlotlyChart"] {{
-    background: rgba(255,255,255,0.78) !important;
-    border: 1px solid {T["BORDER_SOFT"]} !important;
+/* ── st.metric — glass card ──────────────────────────────── */
+[data-testid="stMetric"] {{
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(12px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
+    border: 1px solid #E2E8F0 !important;
     border-radius: 16px !important;
-    box-shadow: 0 10px 30px rgba(15,23,42,0.06) !important;
+    box-shadow: 0 10px 28px rgba(15,23,42,0.07) !important;
+    padding: 1rem 1.1rem !important;
+}}
+[data-testid="stMetricLabel"] p {{
+    color: #64748B !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}}
+[data-testid="stMetricValue"] {{
+    color: #0F172A !important;
+    font-weight: 800 !important;
+}}
+
+/* ── KPI cards — glass panel ─────────────────────────────── */
+.kpi-card {{
+    background: rgba(255,255,255,0.72) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    border: 1px solid rgba(203,213,225,0.72) !important;
+    border-radius: 18px !important;
+    box-shadow:
+        0 12px 32px rgba(15,23,42,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.65) !important;
+    padding: 1.1rem 1.25rem !important;
+}}
+
+/* ── Premium header — glass ──────────────────────────────── */
+.premium-header {{
+    background: rgba(255,255,255,0.72) !important;
+    backdrop-filter: blur(18px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
+    border: 1px solid rgba(203,213,225,0.72) !important;
+    box-shadow:
+        0 12px 32px rgba(15,23,42,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.65) !important;
+}}
+
+/* ── Sidebar user content — subtle glass card ────────────── */
+[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
+    background: rgba(255,255,255,0.38) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(203,213,225,0.45) !important;
+    margin: 6px 8px !important;
+    padding: 6px !important;
+}}
+
+/* ── Plotly chart container — glass panel ────────────────── */
+[data-testid="stPlotlyChart"] {{
+    background: rgba(255,255,255,0.72) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    border: 1px solid rgba(203,213,225,0.72) !important;
+    border-radius: 18px !important;
+    box-shadow:
+        0 12px 32px rgba(15,23,42,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.65) !important;
 }}
 """ if is_light else ""
 
