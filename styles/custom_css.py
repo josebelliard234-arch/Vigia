@@ -424,23 +424,21 @@ textarea::placeholder {{
    stays visible. light_df() is a no-op; Styler white cells omitted.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── st.dataframe — dark frame, GDG renders freely inside ── */
+/* ── st.dataframe — border frame only, NO background-color ─
+   Dark mode base CSS never set background-color on .stDataFrame
+   and GDG rendered fine. Adding background-color blocks the canvas
+   render. A dark border is enough for the data-surface aesthetic. */
 [data-testid="stDataFrame"] {{
     border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    background-color: #0F172A !important;
 }}
-/* No background override on > div, .dvn-scroller or canvas —
-   GDG's JS renderer must not be interfered with. The dark bg on
-   the outer container is enough for the rounded-corner frame. */
 
-/* ── st.data_editor — same treatment ────────────────────── */
+/* ── st.data_editor — same: border frame only ────────────── */
 [data-testid="stDataEditor"] {{
     border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    background-color: #0F172A !important;
 }}
 
 /* ══════════════════════════════════════════════════════════════
