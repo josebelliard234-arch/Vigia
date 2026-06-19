@@ -424,26 +424,16 @@ textarea::placeholder {{
    stays visible. light_df() is a no-op; Styler white cells omitted.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── st.dataframe — border frame only, NO background-color ─
-   Dark mode base CSS never set background-color on .stDataFrame
-   and GDG rendered fine. Adding background-color blocks the canvas
-   render. A dark border is enough for the data-surface aesthetic. */
-[data-testid="stDataFrame"] {{
-    border: 1px solid #334155 !important;
-    border-radius: 14px !important;
-    overflow: hidden !important;
-}}
-
-/* ── st.data_editor — same: border frame only ────────────── */
-[data-testid="stDataEditor"] {{
-    border: 1px solid #334155 !important;
-    border-radius: 14px !important;
-    overflow: hidden !important;
-}}
+/* ── st.dataframe / st.data_editor — NO CSS in light mode ───
+   GDG renders its cells via JS canvas. Any CSS on the container
+   or its descendants (.stDataFrame th/td) breaks the rendering.
+   Base dark CSS (.stDataFrame {{ border-radius; overflow; border }})
+   applies in both modes and is sufficient. */
 
 /* ══════════════════════════════════════════════════════════════
    HTML <table> — dark data surface
-   st.table(), Styler HTML export, st.markdown.
+   Targets only DOM-based tables: stMarkdownContainer, stTable,
+   element-container. NOT stDataFrame (GDG canvas — do not touch).
    ══════════════════════════════════════════════════════════════ */
 [data-testid="stTable"] table,
 [data-testid="stTable"] {{
@@ -453,8 +443,6 @@ textarea::placeholder {{
     background-color: #0F172A !important;
     color: #F8FAFC !important;
 }}
-.stDataFrame table,
-[data-testid="stDataFrame"] table,
 [data-testid="stMarkdownContainer"] table,
 [data-testid="stTable"] table,
 .element-container table {{
@@ -468,9 +456,6 @@ textarea::placeholder {{
     border-spacing: 0 !important;
 }}
 /* Table headers */
-.stDataFrame thead, .stDataFrame th,
-[data-testid="stDataFrame"] thead,
-[data-testid="stDataFrame"] th,
 [data-testid="stMarkdownContainer"] thead,
 [data-testid="stMarkdownContainer"] th,
 [data-testid="stTable"] thead,
@@ -485,8 +470,6 @@ textarea::placeholder {{
     white-space: nowrap !important;
 }}
 /* Table data cells */
-.stDataFrame td,
-[data-testid="stDataFrame"] td,
 [data-testid="stMarkdownContainer"] td,
 [data-testid="stTable"] td,
 .element-container td {{
@@ -497,15 +480,11 @@ textarea::placeholder {{
     padding: 0.45rem 0.75rem !important;
 }}
 /* Alternating rows */
-.stDataFrame tr:nth-child(even) td,
-[data-testid="stDataFrame"] tr:nth-child(even) td,
 [data-testid="stMarkdownContainer"] tr:nth-child(even) td,
 [data-testid="stTable"] tr:nth-child(even) td {{
     background-color: #111827 !important;
 }}
 /* Hover */
-.stDataFrame tr:hover td,
-[data-testid="stDataFrame"] tr:hover td,
 [data-testid="stMarkdownContainer"] tr:hover td,
 [data-testid="stTable"] tr:hover td {{
     background-color: #1E293B !important;
