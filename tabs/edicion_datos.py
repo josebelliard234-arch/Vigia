@@ -451,7 +451,7 @@ def render_edicion_datos():
         )
         go = gb.build()
 
-        _ag_theme = "alpine" if get_mode() == "light" else "alpine-dark"
+        _ag_theme = "alpine"  # st_aggrid 1.0.5 only has alpine/balham/material/streamlit
         grid_resp = AgGrid(
             st.session_state["_ed_ag_df"],
             gridOptions=go,

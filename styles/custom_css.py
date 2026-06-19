@@ -922,6 +922,29 @@ html, body, [class*="css"] {{
     border: 1px solid var(--border-soft);
 }}
 
+/* ── AG Grid (alpine) — base tokens, mode-aware via T ────────
+   st_aggrid 1.0.5 has no dark variant; light mode _native block
+   overrides these with more specific rules. */
+.ag-theme-alpine {{
+    --ag-background-color:               {T["TABLE_ROW_BG"]};
+    --ag-foreground-color:               {T["TEXT_PRIMARY"]};
+    --ag-border-color:                   {T["TABLE_BORDER"]};
+    --ag-secondary-border-color:         {T["BORDER_SOFT"]};
+    --ag-header-background-color:        {T["TABLE_HEADER_BG"]};
+    --ag-header-foreground-color:        {T["TEXT_PRIMARY"]};
+    --ag-row-hover-color:                {T["PRIMARY_SOFT"]};
+    --ag-selected-row-background-color:  {T["PRIMARY_SOFT"]};
+    --ag-odd-row-background-color:       {T["TABLE_ROW_ALT_BG"]};
+    --ag-control-panel-background-color: {T["TABLE_ROW_BG"]};
+    --ag-menu-background-color:          {T["CARD_BG_SOLID"]};
+    --ag-font-size:                      13px;
+    --ag-row-height:                     38px;
+    --ag-header-height:                  44px;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    border: 1px solid {T["TABLE_BORDER"]} !important;
+}}
+
 /* ── Buttons ──────────────────────────────────────────────── */
 .stButton > button {{
     border-radius: 10px !important;
