@@ -1,7 +1,7 @@
 ﻿import streamlit as st
 import pandas as pd
 from sqlalchemy import text
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode, AgGridTheme
 
 from data.database import (
     load_all, get_conn, DEMO_MODE, log_action,
@@ -451,7 +451,7 @@ def render_edicion_datos():
         )
         go = gb.build()
 
-        _ag_theme = "alpine"  # st_aggrid 1.0.5 only has alpine/balham/material/streamlit
+        _ag_theme = AgGridTheme.ALPINE
         grid_resp = AgGrid(
             st.session_state["_ed_ag_df"],
             gridOptions=go,
