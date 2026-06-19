@@ -424,36 +424,22 @@ textarea::placeholder {{
    stays visible. light_df() is a no-op; Styler white cells omitted.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── st.dataframe — dark data surface ───────────────────── */
+/* ── st.dataframe — dark frame, GDG renders freely inside ── */
 [data-testid="stDataFrame"] {{
     border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
     background-color: #0F172A !important;
 }}
-[data-testid="stDataFrame"] > div {{
-    background-color: #0F172A !important;
-    border-radius: 14px !important;
-}}
+/* No background override on > div, .dvn-scroller or canvas —
+   GDG's JS renderer must not be interfered with. The dark bg on
+   the outer container is enough for the rounded-corner frame. */
 
-/* ── st.data_editor — dark data surface ─────────────────── */
+/* ── st.data_editor — same treatment ────────────────────── */
 [data-testid="stDataEditor"] {{
     border: 1px solid #334155 !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    background-color: #0F172A !important;
-}}
-[data-testid="stDataEditor"] > div {{
-    background-color: #0F172A !important;
-    border-radius: 14px !important;
-}}
-
-/* GDG canvas scroller — dark data surface */
-.dvn-scroller {{
-    background-color: #0F172A !important;
-}}
-[data-testid="stDataFrame"] canvas,
-[data-testid="stDataEditor"] canvas {{
     background-color: #0F172A !important;
 }}
 
