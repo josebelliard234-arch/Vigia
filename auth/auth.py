@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from data.database import get_conn, get_engine, _is_postgres, log_action
 from styles.theme import get_mode
+from styles.custom_css import inject_caps_lock_script
 
 
 # ============================================================
@@ -355,33 +356,9 @@ def _render_login():
             st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
             password = st.text_input("Contrasena", placeholder="Contrasena",
                                      type="password", key="li_pass")
-            st.markdown("<div style='min-height:1.4rem' id='caps-warn-login'></div>",
+            st.markdown("<div style='min-height:1.4rem;color:#F59E0B;font-size:0.78rem;font-weight:600;' id='caps-warn-login'></div>",
                         unsafe_allow_html=True)
-            st.markdown("""
-            <script>
-            (function() {
-                if (window._capsLockLoginAttached) return;
-                window._capsLockLoginAttached = true;
-                function setup() {
-                    var inputs = document.querySelectorAll('input[type="password"]');
-                    if (!inputs.length) { setTimeout(setup, 200); return; }
-                    inputs.forEach(function(input) {
-                        if (input._capsDetected) return;
-                        input._capsDetected = true;
-                        var warn = document.getElementById('caps-warn-login');
-                        if (!warn) return;
-                        warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;font-weight:600;min-height:1.4rem;margin-top:2px;';
-                        function check(e) {
-                            warn.textContent = e.getModifierState('CapsLock') ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
-                        }
-                        input.addEventListener('keyup', check);
-                        input.addEventListener('keydown', check);
-                    });
-                }
-                setup();
-            })();
-            </script>
-            """, unsafe_allow_html=True)
+            inject_caps_lock_script()
             st.markdown("<div style='margin-top:.3rem'></div>", unsafe_allow_html=True)
             login_btn = st.form_submit_button("Iniciar sesion", use_container_width=True)
 

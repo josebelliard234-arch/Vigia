@@ -1135,9 +1135,30 @@ input[type="password"]::-webkit-credentials-auto-fill-button {{ display: none !i
     h3 {{ font-size: 0.98rem !important; }}
 }}
 
+/* ── Tarjetas Mayor alza / Mayor baja ─────────────────────── */
+details.vc-card summary::-webkit-details-marker,
+details.vc-card summary::marker {{ display: none; }}
+.vc-chevron {{
+    display: inline-block;
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+}}
+details.vc-card[open] .vc-chevron {{ transform: rotate(180deg); }}
+details.vc-card .vc-body {{
+    display: block !important;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height .4s cubic-bezier(.34,1.1,.64,1), opacity .3s ease;
+}}
+details.vc-card[open] .vc-body {{
+    max-height: 900px;
+    opacity: 1;
+}}
+
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes fadeIn  {{ from {{ opacity: 0; transform: translateY(8px);            }} to {{ opacity: 1; transform: translateY(0);        }} }}
 @keyframes floatIn {{ from {{ opacity: 0; transform: translateY(10px) scale(.99); }} to {{ opacity: 1; transform: translateY(0) scale(1); }} }}
+
 
 {_native}
 </style>
@@ -1159,6 +1180,35 @@ def inject_theme_script() -> None:
         f'var d=window.parent.document.documentElement;'
         f'if(d.dataset.theme!=="{mode}")d.dataset.theme="{mode}";'
         f'}})();</script>',
+        height=0,
+        scrolling=False,
+    )
+
+
+def inject_caps_lock_script() -> None:
+    """Inyecta deteccion de Caps Lock para campos de contraseña via components.html."""
+    components.html(
+        """<script>
+        (function() {
+            function check(e) {
+                var doc = window.parent.document;
+                var warn = doc.getElementById('caps-warn-login') || doc.getElementById('caps-warn-chpw');
+                if (warn) warn.textContent = e.getModifierState('CapsLock') ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
+            }
+            function setup() {
+                var doc = window.parent.document;
+                var inputs = doc.querySelectorAll('input[type="password"]');
+                if (!inputs.length) { setTimeout(setup, 300); return; }
+                inputs.forEach(function(input) {
+                    if (input._capsDetected) return;
+                    input._capsDetected = true;
+                    input.addEventListener('keyup', check);
+                    input.addEventListener('keydown', check);
+                });
+            }
+            setTimeout(setup, 400);
+        })();
+        </script>""",
         height=0,
         scrolling=False,
     )

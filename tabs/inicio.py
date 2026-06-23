@@ -109,15 +109,14 @@ def _render_card_expandible(r, m_productos, tipo="subio"):
     else:
         df_det = df_cat[df_cat["pct"] < -0.5].sort_values("pct", ascending=True)
 
-    # Filas de productos como HTML
     rows_html = ""
     for _, p in df_det.iterrows():
         s  = "+" if p["pct"] > 0 else ""
         ic = "▲" if p["pct"] > 0 else "▼"
         c  = RED if p["pct"] > 0 else GREEN
         rows_html += (
-            f'<div style="display:flex;justify-content:space-between;align-items:center;'
-            f'padding:.32rem .6rem;border-radius:8px;margin-bottom:.18rem;'
+            f'<div class="vc-row" style="display:flex;justify-content:space-between;'
+            f'align-items:center;padding:.32rem .6rem;border-radius:8px;margin-bottom:.18rem;'
             f'background:{c}0D;border-left:2px solid {c}55;">'
             f'<div style="min-width:0;">'
             f'<span style="font-size:.78rem;font-weight:600;color:var(--t0);">{p["producto"]}</span>'
@@ -128,18 +127,11 @@ def _render_card_expandible(r, m_productos, tipo="subio"):
             f'</div>'
         )
 
-    detail_block = (
-        f'<div style="padding:.5rem .2rem 0 .2rem;">{rows_html}</div>'
-        if rows_html else ""
-    )
+    productos_html = f'<div class="vc-body">{rows_html}</div>' if rows_html else ""
 
-    chevron = "▾"  # indicador visual de que es clickeable
-
-    html = (
-        f'<style>details.vigia-card summary::-webkit-details-marker,'
-        f'details.vigia-card summary::marker{{display:none}}</style>'
-        f'<details class="vigia-card" style="margin-bottom:.5rem;">'
-        f'<summary style="cursor:pointer;outline:none;list-style:none;">'
+    st.markdown(
+        f'<details class="vc-card" style="margin-bottom:.5rem;">'
+        f'<summary style="list-style:none;cursor:pointer;outline:none;">'
         f'<div style="padding:.9rem 1rem;border-radius:13px;'
         f'background:linear-gradient(135deg,{color}18 0%,{color}08 100%);'
         f'border:1px solid {color}44;border-top:3px solid {color};">'
@@ -153,16 +145,14 @@ def _render_card_expandible(r, m_productos, tipo="subio"):
         f'{r["n_productos"]} productos&nbsp;&nbsp;'
         f'<span style="color:{RED};">▲{r["n_subio"]}</span>&nbsp;'
         f'<span style="color:{GREEN};">▼{r["n_bajo"]}</span>'
-        f'</div>'
-        f'</div>'
-        f'<span style="font-size:1.1rem;color:{color}88;margin-top:.1rem;">{chevron}</span>'
-        f'</div>'
-        f'</div>'
+        f'</div></div>'
+        f'<span class="vc-chevron" style="font-size:1.1rem;color:{color}88;">▾</span>'
+        f'</div></div>'
         f'</summary>'
-        f'{detail_block}'
-        f'</details>'
+        f'{productos_html}'
+        f'</details>',
+        unsafe_allow_html=True,
     )
-    st.markdown(html, unsafe_allow_html=True)
 
 
 def _semana_n_atras(todas_semanas, semana_act, n):
