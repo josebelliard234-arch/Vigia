@@ -291,7 +291,10 @@ def _render_login():
             )
             with st.form("form_force_chpw"):
                 nueva     = st.text_input("Nueva contrasena",    type="password")
+                st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
                 confirmar = st.text_input("Confirmar contrasena", type="password")
+                st.markdown("<div style='min-height:1.4rem' id='caps-warn-chpw'></div>",
+                            unsafe_allow_html=True)
                 components.html("""
                 <script>
                 (function() {
@@ -302,14 +305,13 @@ def _render_login():
                         inputs.forEach(function(input) {
                             if (input._capsDetected) return;
                             input._capsDetected = true;
-                            var warn = doc.createElement('div');
-                            warn.style.cssText = 'color:#F59E0B;font-size:0.75rem;margin-top:3px;'
-                                + 'display:none;font-family:Inter,sans-serif;font-weight:600;padding:2px 0;';
-                            warn.textContent = '⚠️ Mayúsculas activadas (Caps Lock ON)';
-                            var container = input.closest('[data-baseweb="base-input"]') || input.parentNode;
-                            container.parentNode.insertBefore(warn, container.nextSibling);
+                            var warn = doc.getElementById('caps-warn-chpw');
+                            if (!warn) return;
+                            warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;'
+                                + 'font-weight:600;min-height:1.4rem;margin-top:2px;';
                             function check(e) {
-                                warn.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+                                warn.textContent = e.getModifierState('CapsLock')
+                                    ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
                             }
                             input.addEventListener('keyup', check);
                             input.addEventListener('keydown', check);
@@ -352,8 +354,11 @@ def _render_login():
 
         # ── Fase 1: login normal ───────────────────────────────
         username  = st.text_input("Usuario",    placeholder="Tu nombre de usuario", key="li_user")
+        st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
         password  = st.text_input("Contrasena", placeholder="Contrasena",
                                   type="password", key="li_pass")
+        st.markdown("<div style='min-height:1.4rem' id='caps-warn-login'></div>",
+                    unsafe_allow_html=True)
 
         components.html("""
         <script>
@@ -365,15 +370,13 @@ def _render_login():
                 inputs.forEach(function(input) {
                     if (input._capsDetected) return;
                     input._capsDetected = true;
-                    var warn = doc.createElement('div');
-                    warn.style.cssText = 'color:#F59E0B;font-size:0.75rem;margin-top:3px;'
-                        + 'display:none;font-family:Inter,sans-serif;font-weight:600;'
-                        + 'padding:2px 0;';
-                    warn.textContent = '⚠️ Mayúsculas activadas (Caps Lock ON)';
-                    var container = input.closest('[data-baseweb="base-input"]') || input.parentNode;
-                    container.parentNode.insertBefore(warn, container.nextSibling);
+                    var warn = doc.getElementById('caps-warn-login');
+                    if (!warn) return;
+                    warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;'
+                        + 'font-weight:600;min-height:1.4rem;margin-top:2px;';
                     function check(e) {
-                        warn.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+                        warn.textContent = e.getModifierState('CapsLock')
+                            ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
                     }
                     input.addEventListener('keyup', check);
                     input.addEventListener('keydown', check);
