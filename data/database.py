@@ -187,63 +187,65 @@ def init_db():
 # ------------------------------------------------------------
 def save_to_db(df, fuente='bruto'):
     pg = _is_postgres()
+    df = df.copy()
+    df["fuente"] = fuente
+    df["id_producto"] = df["id_producto"].astype(int)
+    df["precio"] = df["precio"].astype(float)
+    cols = ["semana", "provincia", "supermercado", "categoria",
+            "id_producto", "producto", "presentacion", "precio", "fuente"]
+    records = df[cols].to_dict("records")
+
     with get_conn() as con:
-        for _, r in df.iterrows():
-            if pg:
-                sql = text("""
-                    INSERT INTO precios
-                        (semana, provincia, supermercado, categoria,
-                         id_producto, producto, presentacion, precio, fuente)
-                    VALUES (:semana, :provincia, :supermercado, :categoria,
-                            :id_producto, :producto, :presentacion, :precio, :fuente)
-                    ON CONFLICT (semana, provincia, supermercado, id_producto, presentacion)
-                    DO UPDATE SET
-                        precio    = EXCLUDED.precio,
-                        fuente    = EXCLUDED.fuente,
-                        categoria = EXCLUDED.categoria,
-                        producto  = EXCLUDED.producto
-                """)
-            else:
-                sql = text("""
-                    INSERT OR REPLACE INTO precios
-                        (semana, provincia, supermercado, categoria,
-                         id_producto, producto, presentacion, precio, fuente)
-                    VALUES (:semana, :provincia, :supermercado, :categoria,
-                            :id_producto, :producto, :presentacion, :precio, :fuente)
-                """)
-            con.execute(sql, {
-                "semana": r.semana, "provincia": r.provincia,
-                "supermercado": r.supermercado, "categoria": r.categoria,
-                "id_producto": int(r.id_producto), "producto": r.producto,
-                "presentacion": r.presentacion, "precio": float(r.precio),
-                "fuente": fuente,
-            })
+        if pg:
+            sql = text("""
+                INSERT INTO precios
+                    (semana, provincia, supermercado, categoria,
+                     id_producto, producto, presentacion, precio, fuente)
+                VALUES (:semana, :provincia, :supermercado, :categoria,
+                        :id_producto, :producto, :presentacion, :precio, :fuente)
+                ON CONFLICT (semana, provincia, supermercado, id_producto, presentacion)
+                DO UPDATE SET
+                    precio    = EXCLUDED.precio,
+                    fuente    = EXCLUDED.fuente,
+                    categoria = EXCLUDED.categoria,
+                    producto  = EXCLUDED.producto
+            """)
+        else:
+            sql = text("""
+                INSERT OR REPLACE INTO precios
+                    (semana, provincia, supermercado, categoria,
+                     id_producto, producto, presentacion, precio, fuente)
+                VALUES (:semana, :provincia, :supermercado, :categoria,
+                        :id_producto, :producto, :presentacion, :precio, :fuente)
+            """)
+        con.execute(sql, records)
 
 
 def save_supermercado_to_db(df):
     pg = _is_postgres()
+    df = df.copy()
+    df["id_producto"] = df["id_producto"].astype(int)
+    df["precio"] = df["precio"].astype(float)
+    cols = ["semana", "id_producto", "producto", "presentacion", "supermercado", "precio"]
+    records = df[cols].to_dict("records")
+
     with get_conn() as con:
         con.execute(text("DELETE FROM precios_supermercado"))
-        for _, r in df.iterrows():
-            if pg:
-                sql = text("""
-                    INSERT INTO precios_supermercado
-                        (semana, id_producto, producto, presentacion, supermercado, precio)
-                    VALUES (:semana, :id_producto, :producto, :presentacion, :supermercado, :precio)
-                    ON CONFLICT (semana, id_producto, presentacion, supermercado)
-                    DO UPDATE SET precio = EXCLUDED.precio, producto = EXCLUDED.producto
-                """)
-            else:
-                sql = text("""
-                    INSERT OR REPLACE INTO precios_supermercado
-                        (semana, id_producto, producto, presentacion, supermercado, precio)
-                    VALUES (:semana, :id_producto, :producto, :presentacion, :supermercado, :precio)
-                """)
-            con.execute(sql, {
-                "semana": r.semana, "id_producto": int(r.id_producto),
-                "producto": r.producto, "presentacion": r.presentacion,
-                "supermercado": r.supermercado, "precio": float(r.precio),
-            })
+        if pg:
+            sql = text("""
+                INSERT INTO precios_supermercado
+                    (semana, id_producto, producto, presentacion, supermercado, precio)
+                VALUES (:semana, :id_producto, :producto, :presentacion, :supermercado, :precio)
+                ON CONFLICT (semana, id_producto, presentacion, supermercado)
+                DO UPDATE SET precio = EXCLUDED.precio, producto = EXCLUDED.producto
+            """)
+        else:
+            sql = text("""
+                INSERT OR REPLACE INTO precios_supermercado
+                    (semana, id_producto, producto, presentacion, supermercado, precio)
+                VALUES (:semana, :id_producto, :producto, :presentacion, :supermercado, :precio)
+            """)
+        con.execute(sql, records)
 
 
 def save_productos_clave_to_db(df):
@@ -267,13 +269,15 @@ def save_productos_clave_to_db(df):
 
 
 # ------------------------------------------------------------
-# LECTURA
+# LECTURA  (con caché — se invalida explícitamente tras escrituras)
 # ------------------------------------------------------------
+@st.cache_data(ttl=300)
 def load_all():
     df = pd.read_sql("SELECT * FROM precios ORDER BY semana", get_engine())
     return _normalizar_columnas(df)
 
 
+@st.cache_data(ttl=300)
 def load_validados():
     df = pd.read_sql(
         "SELECT * FROM precios WHERE fuente='validado' ORDER BY semana",
@@ -282,6 +286,7 @@ def load_validados():
     return _normalizar_columnas(df)
 
 
+@st.cache_data(ttl=300)
 def load_supermercado():
     try:
         df = pd.read_sql("SELECT * FROM precios_supermercado", get_engine())
@@ -290,6 +295,7 @@ def load_supermercado():
     return _normalizar_columnas(df)
 
 
+@st.cache_data(ttl=300)
 def load_productos_clave():
     try:
         df = pd.read_sql("SELECT * FROM productos_clave", get_engine())
@@ -298,12 +304,14 @@ def load_productos_clave():
     return _normalizar_columnas(df)
 
 
+@st.cache_data(ttl=60)
 def semanas_en_db():
     with get_conn() as con:
         cur = con.execute(text("SELECT DISTINCT semana FROM precios ORDER BY semana"))
         return [r[0] for r in cur.fetchall()]
 
 
+@st.cache_data(ttl=60)
 def count_validados():
     with get_conn() as con:
         try:
@@ -313,6 +321,7 @@ def count_validados():
             return 0
 
 
+@st.cache_data(ttl=60)
 def semanas_validadas():
     with get_conn() as con:
         cur = con.execute(text(
@@ -321,6 +330,7 @@ def semanas_validadas():
         return [r[0] for r in cur.fetchall()]
 
 
+@st.cache_data(ttl=60)
 def count_supermercado():
     with get_conn() as con:
         try:
@@ -330,6 +340,7 @@ def count_supermercado():
             return 0
 
 
+@st.cache_data(ttl=60)
 def count_productos_clave():
     with get_conn() as con:
         try:
@@ -366,6 +377,7 @@ def registrar_monitoreo_cargado(semana, nombre_archivo, registros):
         })
 
 
+@st.cache_data(ttl=60)
 def load_monitoreos_cargados():
     with get_conn() as con:
         try:
@@ -439,6 +451,7 @@ def log_action(accion, entidad="", detalle="", valor_ant="", valor_nuevo=""):
         pass
 
 
+@st.cache_data(ttl=30)
 def load_audit_log(limit=500):
     try:
         df = pd.read_sql(
@@ -498,6 +511,7 @@ def delete_marcador(semana, provincia, supermercado, categoria, producto, presen
         pass
 
 
+@st.cache_data(ttl=60)
 def load_marcadores():
     try:
         return pd.read_sql(

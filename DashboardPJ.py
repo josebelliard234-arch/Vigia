@@ -212,6 +212,7 @@ with st.sidebar:
                         save_to_db(df_preview, fuente="bruto")
                         registrar_monitoreo_cargado(sem_final, f.name, len(df_preview))
                         log_action("UPLOAD", "monitoreo", f"{f.name} · semana={sem_final} · {len(df_preview):,} registros")
+                        st.cache_data.clear()
                         st.success(f"Importado: {len(df_preview):,} registros")
                         st.rerun()
                 elif df_preview.empty:
@@ -240,6 +241,7 @@ with st.sidebar:
                              disabled=DEMO_MODE):
                     eliminar_monitoreo_cargado(semana_m)
                     log_action("DELETE", "monitoreo", f"semana={semana_m} · {nombre_m}")
+                    st.cache_data.clear()
                     st.rerun()
 
         st.divider()
@@ -291,6 +293,7 @@ with st.sidebar:
                     if not df_clave_prev.empty:
                         save_productos_clave_to_db(df_clave_prev)
                     log_action("UPLOAD", "historial", f"{uploaded_hist.name} · {len(df_hist_prev):,} registros validados")
+                    st.cache_data.clear()
                     st.success("Historial importado correctamente")
                     st.rerun()
             else:
@@ -324,6 +327,7 @@ with st.sidebar:
                 antes = wipe_db(que_borrar)
                 log_action("WIPE", "db", f"tipo={que_borrar}",
                            f"precios={antes['precios']:,} | sup={antes['precios_supermercado']:,} | clave={antes['productos_clave']:,}", "")
+                st.cache_data.clear()
                 st.success(
                     f"Base de datos limpiada. Eliminados → "
                     f"precios: {antes['precios']:,} | "
