@@ -1066,6 +1066,69 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadi
 /* ── Ocultar hint "Press Enter to submit form" ────────────── */
 [data-testid="InputInstructions"] {{ display: none !important; }}
 
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE — monitores pequeños (≤1366px) y laptops (≤1280px)
+   ════════════════════════════════════════════════════════════ */
+
+/* Monitor mediano: 1280px – 1366px (laptop 13-15") */
+@media (max-width: 1366px) {{
+    .block-container {{
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        max-width: 100% !important;
+    }}
+    .premium-header {{
+        padding: 0.85rem 1rem !important;
+        margin-bottom: 0.85rem !important;
+        border-radius: 18px !important;
+    }}
+    .header-title   {{ font-size: 1.25rem !important; }}
+    .header-subtitle {{ font-size: 0.82rem !important; }}
+    .kpi-card {{
+        padding: 0.75rem !important;
+        min-height: 90px !important;
+        border-radius: 14px !important;
+    }}
+    .kpi-value {{ font-size: 1.2rem !important; }}
+    .kpi-label {{ font-size: 0.72rem !important; }}
+    .kpi-note  {{ font-size: 0.76rem !important; }}
+    .stMetric {{
+        padding: 0.7rem !important;
+        border-radius: 14px !important;
+    }}
+    [data-testid="stMetricValue"] {{ font-size: 1.3rem !important; }}
+    [data-testid="stMetricLabel"] p {{ font-size: 0.70rem !important; }}
+}}
+
+/* Monitor pequeño: ≤1280px */
+@media (max-width: 1280px) {{
+    .block-container {{
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }}
+    .premium-header {{
+        padding: 0.70rem 0.85rem !important;
+        border-radius: 14px !important;
+        position: static !important;
+    }}
+    .header-title   {{ font-size: 1.10rem !important; }}
+    .header-subtitle {{ font-size: 0.78rem !important; margin-top: 0.15rem !important; }}
+    .kpi-card {{
+        padding: 0.6rem 0.75rem !important;
+        min-height: 78px !important;
+        border-radius: 12px !important;
+    }}
+    .kpi-value {{ font-size: 1.05rem !important; }}
+    .kpi-label {{ font-size: 0.68rem !important; }}
+    .stMetric   {{ padding: 0.55rem 0.7rem !important; }}
+    [data-testid="stMetricValue"] {{ font-size: 1.15rem !important; }}
+    h1 {{ font-size: 1.3rem !important; }}
+    h2 {{ font-size: 1.1rem !important; }}
+    h3 {{ font-size: 0.98rem !important; }}
+}}
+
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes fadeIn  {{ from {{ opacity: 0; transform: translateY(8px);            }} to {{ opacity: 1; transform: translateY(0);        }} }}
 @keyframes floatIn {{ from {{ opacity: 0; transform: translateY(10px) scale(.99); }} to {{ opacity: 1; transform: translateY(0) scale(1); }} }}
