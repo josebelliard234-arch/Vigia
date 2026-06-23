@@ -350,55 +350,40 @@ def _render_login():
             return
 
         # ── Fase 1: login normal ───────────────────────────────
-        username  = st.text_input("Usuario",    placeholder="Tu nombre de usuario", key="li_user")
-        st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
-        password  = st.text_input("Contrasena", placeholder="Contrasena",
-                                  type="password", key="li_pass")
-        st.markdown("<div style='min-height:1.4rem' id='caps-warn-login'></div>", unsafe_allow_html=True)
-        st.markdown("""
-        <script>
-        (function() {
-            if (window._capsLockLoginAttached) return;
-            window._capsLockLoginAttached = true;
-            function setup() {
-                var inputs = document.querySelectorAll('input[type="password"]');
-                if (!inputs.length) { setTimeout(setup, 200); return; }
-                inputs.forEach(function(input) {
-                    if (input._capsDetected) return;
-                    input._capsDetected = true;
-                    var warn = document.getElementById('caps-warn-login');
-                    if (!warn) return;
-                    warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;font-weight:600;min-height:1.4rem;margin-top:2px;';
-                    function check(e) {
-                        warn.textContent = e.getModifierState('CapsLock') ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
-                    }
-                    input.addEventListener('keyup', check);
-                    input.addEventListener('keydown', check);
-                });
-            }
-            setup();
-        })();
-        </script>
-        """, unsafe_allow_html=True)
-
-        # Checkbox pequeño "Cambiar contrasena" — debajo del campo contraseña
-        st.markdown(
-            "<style>"
-            "div[data-testid='stCheckbox'] label {"
-            "  font-size:.8rem !important; color:#94A3B8 !important;"
-            "}"
-            "</style>",
-            unsafe_allow_html=True,
-        )
-        show_chpw = st.checkbox("Cambiar contrasena", key="li_show_chpw")
-
-        new_pass = conf_pass = ""
-        if show_chpw:
-            new_pass  = st.text_input("Nueva contrasena",    type="password", key="li_new_pass")
-            conf_pass = st.text_input("Confirmar contrasena", type="password", key="li_conf_pass")
-
-        st.markdown("<div style='margin-top:.3rem'></div>", unsafe_allow_html=True)
-        login_btn = st.button("Iniciar sesion", use_container_width=True, key="li_btn")
+        with st.form("login_form"):
+            username = st.text_input("Usuario", placeholder="Tu nombre de usuario", key="li_user")
+            st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
+            password = st.text_input("Contrasena", placeholder="Contrasena",
+                                     type="password", key="li_pass")
+            st.markdown("<div style='min-height:1.4rem' id='caps-warn-login'></div>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <script>
+            (function() {
+                if (window._capsLockLoginAttached) return;
+                window._capsLockLoginAttached = true;
+                function setup() {
+                    var inputs = document.querySelectorAll('input[type="password"]');
+                    if (!inputs.length) { setTimeout(setup, 200); return; }
+                    inputs.forEach(function(input) {
+                        if (input._capsDetected) return;
+                        input._capsDetected = true;
+                        var warn = document.getElementById('caps-warn-login');
+                        if (!warn) return;
+                        warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;font-weight:600;min-height:1.4rem;margin-top:2px;';
+                        function check(e) {
+                            warn.textContent = e.getModifierState('CapsLock') ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
+                        }
+                        input.addEventListener('keyup', check);
+                        input.addEventListener('keydown', check);
+                    });
+                }
+                setup();
+            })();
+            </script>
+            """, unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:.3rem'></div>", unsafe_allow_html=True)
+            login_btn = st.form_submit_button("Iniciar sesion", use_container_width=True)
 
         if login_btn:
             if not username.strip() or not password.strip():
@@ -414,19 +399,6 @@ def _render_login():
                 st.session_state["_login_pending"] = user
                 st.rerun()
                 return
-
-            # Cambio voluntario de contrasena
-            if show_chpw:
-                if not new_pass.strip():
-                    st.error("Ingresa la nueva contrasena.")
-                    return
-                if len(new_pass.strip()) < 6:
-                    st.error("La nueva contrasena debe tener al menos 6 caracteres.")
-                    return
-                if new_pass != conf_pass:
-                    st.error("Las contrasenas no coinciden.")
-                    return
-                change_password_first_login(user["id"], new_pass.strip())
 
             # Login completo
             st.session_state.update({
