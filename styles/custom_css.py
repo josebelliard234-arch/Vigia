@@ -853,7 +853,7 @@ html, body, [class*="css"] {{
 [data-testid="stSidebar"] .stCaption {{ color: var(--text-muted) !important; }}
 
 .block-container {{
-    padding-top: 1.5rem;
+    padding-top: 3rem;
     padding-bottom: 3rem;
     max-width: 1500px;
 }}
