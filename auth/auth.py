@@ -3,6 +3,7 @@ import os
 import sqlite3 as _sqlite3
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from datetime import datetime
 from sqlalchemy import text
 
@@ -291,6 +292,33 @@ def _render_login():
             with st.form("form_force_chpw"):
                 nueva     = st.text_input("Nueva contrasena",    type="password")
                 confirmar = st.text_input("Confirmar contrasena", type="password")
+                components.html("""
+                <script>
+                (function() {
+                    function setup() {
+                        var doc = window.parent.document;
+                        var inputs = doc.querySelectorAll('input[type="password"]');
+                        if (!inputs.length) { setTimeout(setup, 200); return; }
+                        inputs.forEach(function(input) {
+                            if (input._capsDetected) return;
+                            input._capsDetected = true;
+                            var warn = doc.createElement('div');
+                            warn.style.cssText = 'color:#F59E0B;font-size:0.75rem;margin-top:3px;'
+                                + 'display:none;font-family:Inter,sans-serif;font-weight:600;padding:2px 0;';
+                            warn.textContent = '⚠️ Mayúsculas activadas (Caps Lock ON)';
+                            var container = input.closest('[data-baseweb="base-input"]') || input.parentNode;
+                            container.parentNode.insertBefore(warn, container.nextSibling);
+                            function check(e) {
+                                warn.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+                            }
+                            input.addEventListener('keyup', check);
+                            input.addEventListener('keydown', check);
+                        });
+                    }
+                    setup();
+                })();
+                </script>
+                """, height=0, scrolling=False)
                 ok = st.form_submit_button(
                     "Guardar contrasena e ingresar", use_container_width=True
                 )
@@ -326,6 +354,35 @@ def _render_login():
         username  = st.text_input("Usuario",    placeholder="Tu nombre de usuario", key="li_user")
         password  = st.text_input("Contrasena", placeholder="Contrasena",
                                   type="password", key="li_pass")
+
+        components.html("""
+        <script>
+        (function() {
+            function setup() {
+                var doc = window.parent.document;
+                var inputs = doc.querySelectorAll('input[type="password"]');
+                if (!inputs.length) { setTimeout(setup, 200); return; }
+                inputs.forEach(function(input) {
+                    if (input._capsDetected) return;
+                    input._capsDetected = true;
+                    var warn = doc.createElement('div');
+                    warn.style.cssText = 'color:#F59E0B;font-size:0.75rem;margin-top:3px;'
+                        + 'display:none;font-family:Inter,sans-serif;font-weight:600;'
+                        + 'padding:2px 0;';
+                    warn.textContent = '⚠️ Mayúsculas activadas (Caps Lock ON)';
+                    var container = input.closest('[data-baseweb="base-input"]') || input.parentNode;
+                    container.parentNode.insertBefore(warn, container.nextSibling);
+                    function check(e) {
+                        warn.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+                    }
+                    input.addEventListener('keyup', check);
+                    input.addEventListener('keydown', check);
+                });
+            }
+            setup();
+        })();
+        </script>
+        """, height=0, scrolling=False)
 
         # Checkbox pequeño "Cambiar contrasena" — debajo del campo contraseña
         st.markdown(
