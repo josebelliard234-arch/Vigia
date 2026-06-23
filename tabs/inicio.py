@@ -100,43 +100,69 @@ def _calc_categoria_delta(df_all, semana_act, semana_ref):
 # ── Tarjeta desplegable con detalle de productos ──────────────
 def _render_card_expandible(r, m_productos, tipo="subio"):
     color = RED if tipo == "subio" else GREEN
-
-    # Cuadro siempre visible como representante
-    st.markdown(_card_cat(r["cat_norm"], r["pct_cambio"],
-                          r["n_productos"], r["n_subio"], r["n_bajo"],
-                          size="small"), unsafe_allow_html=True)
+    sign  = "+" if r["pct_cambio"] > 0 else ""
+    icon  = "▲" if r["pct_cambio"] > 0.5 else ("▼" if r["pct_cambio"] < -0.5 else "—")
 
     df_cat = m_productos[m_productos["cat_norm"] == r["cat_norm"]].copy()
     if tipo == "subio":
         df_det = df_cat[df_cat["pct"] > 0.5].sort_values("pct", ascending=False)
-        exp_lbl = f"Ver {len(df_det)} producto(s) que subieron"
     else:
         df_det = df_cat[df_cat["pct"] < -0.5].sort_values("pct", ascending=True)
-        exp_lbl = f"Ver {len(df_det)} producto(s) que bajaron"
 
-    if df_det.empty:
-        st.markdown("<div style='margin-bottom:.5rem'></div>", unsafe_allow_html=True)
-        return
+    # Filas de productos como HTML
+    rows_html = ""
+    for _, p in df_det.iterrows():
+        s  = "+" if p["pct"] > 0 else ""
+        ic = "▲" if p["pct"] > 0 else "▼"
+        c  = RED if p["pct"] > 0 else GREEN
+        rows_html += (
+            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+            f'padding:.32rem .6rem;border-radius:8px;margin-bottom:.18rem;'
+            f'background:{c}0D;border-left:2px solid {c}55;">'
+            f'<div style="min-width:0;">'
+            f'<span style="font-size:.78rem;font-weight:600;color:var(--t0);">{p["producto"]}</span>'
+            f'<span style="font-size:.67rem;color:var(--t2);margin-left:.35rem;">{p["presentacion"]}</span>'
+            f'</div>'
+            f'<span style="font-size:.82rem;font-weight:800;color:{c};'
+            f'white-space:nowrap;margin-left:.5rem;">{ic} {s}{p["pct"]:.1f}%</span>'
+            f'</div>'
+        )
 
-    with st.expander(exp_lbl, expanded=False):
-        for _, p in df_det.iterrows():
-            s  = "+" if p["pct"] > 0 else ""
-            ic = "▲" if p["pct"] > 0 else "▼"
-            c  = RED if p["pct"] > 0 else GREEN
-            st.markdown(
-                f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:.32rem .6rem;border-radius:8px;margin-bottom:.18rem;'
-                f'background:{c}0D;border-left:2px solid {c}55;">'
-                f'<div style="min-width:0;">'
-                f'<span style="font-size:.78rem;font-weight:600;color:var(--t0);">{p["producto"]}</span>'
-                f'<span style="font-size:.67rem;color:var(--t2);margin-left:.35rem;">{p["presentacion"]}</span>'
-                f'</div>'
-                f'<span style="font-size:.82rem;font-weight:800;color:{c};'
-                f'white-space:nowrap;margin-left:.5rem;">{ic} {s}{p["pct"]:.1f}%</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-    st.markdown("<div style='margin-bottom:.3rem'></div>", unsafe_allow_html=True)
+    detail_block = (
+        f'<div style="padding:.5rem .2rem 0 .2rem;">{rows_html}</div>'
+        if rows_html else ""
+    )
+
+    chevron = "▾"  # indicador visual de que es clickeable
+
+    html = (
+        f'<style>details.vigia-card summary::-webkit-details-marker,'
+        f'details.vigia-card summary::marker{{display:none}}</style>'
+        f'<details class="vigia-card" style="margin-bottom:.5rem;">'
+        f'<summary style="cursor:pointer;outline:none;list-style:none;">'
+        f'<div style="padding:.9rem 1rem;border-radius:13px;'
+        f'background:linear-gradient(135deg,{color}18 0%,{color}08 100%);'
+        f'border:1px solid {color}44;border-top:3px solid {color};">'
+        f'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+        f'<div>'
+        f'<div style="font-size:.68rem;color:{color}cc;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;">{r["cat_norm"]}</div>'
+        f'<div style="font-size:1.35rem;font-weight:800;color:{color};line-height:1;">'
+        f'{icon} {sign}{r["pct_cambio"]:.1f}%</div>'
+        f'<div style="font-size:.7rem;color:var(--t3);margin-top:.3rem;">'
+        f'{r["n_productos"]} productos&nbsp;&nbsp;'
+        f'<span style="color:{RED};">▲{r["n_subio"]}</span>&nbsp;'
+        f'<span style="color:{GREEN};">▼{r["n_bajo"]}</span>'
+        f'</div>'
+        f'</div>'
+        f'<span style="font-size:1.1rem;color:{color}88;margin-top:.1rem;">{chevron}</span>'
+        f'</div>'
+        f'</div>'
+        f'</summary>'
+        f'{detail_block}'
+        f'</details>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def _semana_n_atras(todas_semanas, semana_act, n):
