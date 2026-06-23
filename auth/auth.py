@@ -3,7 +3,6 @@ import os
 import sqlite3 as _sqlite3
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from datetime import datetime
 from sqlalchemy import text
 
@@ -293,25 +292,23 @@ def _render_login():
                 nueva     = st.text_input("Nueva contrasena",    type="password")
                 st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
                 confirmar = st.text_input("Confirmar contrasena", type="password")
-                st.markdown("<div style='min-height:1.4rem' id='caps-warn-chpw'></div>",
-                            unsafe_allow_html=True)
-                components.html("""
+                st.markdown("<div style='min-height:1.4rem' id='caps-warn-chpw'></div>", unsafe_allow_html=True)
+                st.markdown("""
                 <script>
                 (function() {
+                    if (window._capsLockChpwAttached) return;
+                    window._capsLockChpwAttached = true;
                     function setup() {
-                        var doc = window.parent.document;
-                        var inputs = doc.querySelectorAll('input[type="password"]');
+                        var inputs = document.querySelectorAll('input[type="password"]');
                         if (!inputs.length) { setTimeout(setup, 200); return; }
                         inputs.forEach(function(input) {
                             if (input._capsDetected) return;
                             input._capsDetected = true;
-                            var warn = doc.getElementById('caps-warn-chpw');
+                            var warn = document.getElementById('caps-warn-chpw');
                             if (!warn) return;
-                            warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;'
-                                + 'font-weight:600;min-height:1.4rem;margin-top:2px;';
+                            warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;font-weight:600;min-height:1.4rem;margin-top:2px;';
                             function check(e) {
-                                warn.textContent = e.getModifierState('CapsLock')
-                                    ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
+                                warn.textContent = e.getModifierState('CapsLock') ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
                             }
                             input.addEventListener('keyup', check);
                             input.addEventListener('keydown', check);
@@ -320,7 +317,7 @@ def _render_login():
                     setup();
                 })();
                 </script>
-                """, height=0, scrolling=False)
+                """, unsafe_allow_html=True)
                 ok = st.form_submit_button(
                     "Guardar contrasena e ingresar", use_container_width=True
                 )
@@ -357,26 +354,23 @@ def _render_login():
         st.markdown("<div style='margin-top:0.6rem'></div>", unsafe_allow_html=True)
         password  = st.text_input("Contrasena", placeholder="Contrasena",
                                   type="password", key="li_pass")
-        st.markdown("<div style='min-height:1.4rem' id='caps-warn-login'></div>",
-                    unsafe_allow_html=True)
-
-        components.html("""
+        st.markdown("<div style='min-height:1.4rem' id='caps-warn-login'></div>", unsafe_allow_html=True)
+        st.markdown("""
         <script>
         (function() {
+            if (window._capsLockLoginAttached) return;
+            window._capsLockLoginAttached = true;
             function setup() {
-                var doc = window.parent.document;
-                var inputs = doc.querySelectorAll('input[type="password"]');
+                var inputs = document.querySelectorAll('input[type="password"]');
                 if (!inputs.length) { setTimeout(setup, 200); return; }
                 inputs.forEach(function(input) {
                     if (input._capsDetected) return;
                     input._capsDetected = true;
-                    var warn = doc.getElementById('caps-warn-login');
+                    var warn = document.getElementById('caps-warn-login');
                     if (!warn) return;
-                    warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;'
-                        + 'font-weight:600;min-height:1.4rem;margin-top:2px;';
+                    warn.style.cssText = 'color:#F59E0B;font-size:0.78rem;font-family:Inter,sans-serif;font-weight:600;min-height:1.4rem;margin-top:2px;';
                     function check(e) {
-                        warn.textContent = e.getModifierState('CapsLock')
-                            ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
+                        warn.textContent = e.getModifierState('CapsLock') ? '⚠ Mayúsculas activadas (Caps Lock ON)' : '';
                     }
                     input.addEventListener('keyup', check);
                     input.addEventListener('keydown', check);
@@ -385,7 +379,7 @@ def _render_login():
             setup();
         })();
         </script>
-        """, height=0, scrolling=False)
+        """, unsafe_allow_html=True)
 
         # Checkbox pequeño "Cambiar contrasena" — debajo del campo contraseña
         st.markdown(
