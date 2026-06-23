@@ -1079,7 +1079,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button {{ display: none !i
 /* Monitor mediano: 1280px – 1366px (laptop 13-15") */
 @media (max-width: 1366px) {{
     .block-container {{
-        padding-top: 1rem !important;
+        padding-top: 3rem !important;
         padding-bottom: 2rem !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
