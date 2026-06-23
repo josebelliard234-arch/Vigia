@@ -99,35 +99,26 @@ def _calc_categoria_delta(df_all, semana_act, semana_ref):
 
 # ── Tarjeta desplegable con detalle de productos ──────────────
 def _render_card_expandible(r, m_productos, tipo="subio"):
-    color  = RED if tipo == "subio" else GREEN
-    icon   = "▲" if tipo == "subio" else "▼"
-    sign   = "+" if r["pct_cambio"] > 0 else ""
-    label  = f"{icon} {r['cat_norm']}  —  {sign}{r['pct_cambio']:.1f}%  ({r['n_productos']} productos)"
+    color = RED if tipo == "subio" else GREEN
 
-    with st.expander(label, expanded=False):
-        st.markdown(_card_cat(r["cat_norm"], r["pct_cambio"],
-                              r["n_productos"], r["n_subio"], r["n_bajo"],
-                              size="small"), unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:.7rem'></div>", unsafe_allow_html=True)
+    # Cuadro siempre visible como representante
+    st.markdown(_card_cat(r["cat_norm"], r["pct_cambio"],
+                          r["n_productos"], r["n_subio"], r["n_bajo"],
+                          size="small"), unsafe_allow_html=True)
 
-        df_cat = m_productos[m_productos["cat_norm"] == r["cat_norm"]].copy()
-        if tipo == "subio":
-            df_det = df_cat[df_cat["pct"] > 0.5].sort_values("pct", ascending=False)
-            titulo = f"Productos que subieron ({len(df_det)})"
-        else:
-            df_det = df_cat[df_cat["pct"] < -0.5].sort_values("pct", ascending=True)
-            titulo = f"Productos que bajaron ({len(df_det)})"
+    df_cat = m_productos[m_productos["cat_norm"] == r["cat_norm"]].copy()
+    if tipo == "subio":
+        df_det = df_cat[df_cat["pct"] > 0.5].sort_values("pct", ascending=False)
+        exp_lbl = f"Ver {len(df_det)} producto(s) que subieron"
+    else:
+        df_det = df_cat[df_cat["pct"] < -0.5].sort_values("pct", ascending=True)
+        exp_lbl = f"Ver {len(df_det)} producto(s) que bajaron"
 
-        if df_det.empty:
-            st.caption("Sin variación significativa por producto.")
-            return
+    if df_det.empty:
+        st.markdown("<div style='margin-bottom:.5rem'></div>", unsafe_allow_html=True)
+        return
 
-        st.markdown(
-            f'<div style="font-size:.70rem;font-weight:700;color:{color};'
-            f'text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">'
-            f'{titulo}</div>',
-            unsafe_allow_html=True,
-        )
+    with st.expander(exp_lbl, expanded=False):
         for _, p in df_det.iterrows():
             s  = "+" if p["pct"] > 0 else ""
             ic = "▲" if p["pct"] > 0 else "▼"
@@ -145,11 +136,7 @@ def _render_card_expandible(r, m_productos, tipo="subio"):
                 f'</div>',
                 unsafe_allow_html=True,
             )
-        st.markdown(
-            f'<div style="font-size:.67rem;color:var(--t3);margin-top:.4rem;">'
-            f'RD$ anterior → actual por producto</div>',
-            unsafe_allow_html=True,
-        )
+    st.markdown("<div style='margin-bottom:.3rem'></div>", unsafe_allow_html=True)
 
 
 def _semana_n_atras(todas_semanas, semana_act, n):
