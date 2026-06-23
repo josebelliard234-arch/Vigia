@@ -1063,6 +1063,9 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadi
 ::-webkit-scrollbar-thumb {{ background: {T["SCROLL_THUMB"]}; border-radius: 999px; }}
 ::-webkit-scrollbar-thumb:hover {{ background: var(--text-muted); }}
 
+/* ── Ocultar hint "Press Enter to submit form" ────────────── */
+[data-testid="InputInstructions"] {{ display: none !important; }}
+
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes fadeIn  {{ from {{ opacity: 0; transform: translateY(8px);            }} to {{ opacity: 1; transform: translateY(0);        }} }}
 @keyframes floatIn {{ from {{ opacity: 0; transform: translateY(10px) scale(.99); }} to {{ opacity: 1; transform: translateY(0) scale(1); }} }}
