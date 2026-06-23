@@ -1066,6 +1066,12 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stRadi
 /* ── Ocultar hint "Press Enter to submit form" ────────────── */
 [data-testid="InputInstructions"] {{ display: none !important; }}
 
+/* ── Ocultar icono nativo del navegador en campos password ── */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-password-reveal-button,
+input[type="password"]::-webkit-credentials-auto-fill-button {{ display: none !important; }}
+
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE — monitores pequeños (≤1366px) y laptops (≤1280px)
    ════════════════════════════════════════════════════════════ */
