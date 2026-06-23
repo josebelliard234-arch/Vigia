@@ -66,15 +66,14 @@ def _fuente_badge(fuente):
 def _calc_categoria_delta(df_all, semana_act, semana_ref):
     """
     Para cada categoría calcula el cambio % promedio entre dos semanas.
-    Solo incluye productos presentes en ambas semanas (cross-join por id_producto+presentacion).
-    Devuelve DataFrame: cat_norm, pct_cambio, n_productos, n_subio, n_bajo, n_estable.
+    Devuelve (agg_df, productos_df) donde productos_df tiene detalle por producto.
     """
     df_a = df_all[df_all["semana"] == semana_act]
     df_r = df_all[df_all["semana"] == semana_ref]
     if df_a.empty or df_r.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
-    grp_a = (df_a.groupby(["id_producto", "presentacion", "categoria"])["precio"]
+    grp_a = (df_a.groupby(["id_producto", "presentacion", "categoria", "producto"])["precio"]
              .mean().reset_index())
     grp_r = (df_r.groupby(["id_producto", "presentacion"])["precio"]
              .mean().reset_index().rename(columns={"precio": "precio_ref"}))
@@ -82,7 +81,7 @@ def _calc_categoria_delta(df_all, semana_act, semana_ref):
     m = grp_a.merge(grp_r, on=["id_producto", "presentacion"], how="inner")
     m = m[m["precio_ref"] > 0].copy()
     if m.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
     m["pct"]      = (m["precio"] - m["precio_ref"]) / m["precio_ref"] * 100
     m["cat_norm"] = m["categoria"].apply(normalizar_categoria)
@@ -95,7 +94,62 @@ def _calc_categoria_delta(df_all, semana_act, semana_ref):
         n_bajo      =("pct", lambda x: int((x < -0.5).sum())),
     ).reset_index()
     agg["n_estable"] = agg["n_productos"] - agg["n_subio"] - agg["n_bajo"]
-    return agg.sort_values("pct_cambio", ascending=False).reset_index(drop=True)
+    return agg.sort_values("pct_cambio", ascending=False).reset_index(drop=True), m
+
+
+# ── Tarjeta desplegable con detalle de productos ──────────────
+def _render_card_expandible(r, m_productos, tipo="subio"):
+    color  = RED if tipo == "subio" else GREEN
+    icon   = "▲" if tipo == "subio" else "▼"
+    sign   = "+" if r["pct_cambio"] > 0 else ""
+    label  = f"{icon} {r['cat_norm']}  —  {sign}{r['pct_cambio']:.1f}%  ({r['n_productos']} productos)"
+
+    with st.expander(label, expanded=False):
+        st.markdown(_card_cat(r["cat_norm"], r["pct_cambio"],
+                              r["n_productos"], r["n_subio"], r["n_bajo"],
+                              size="small"), unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:.7rem'></div>", unsafe_allow_html=True)
+
+        df_cat = m_productos[m_productos["cat_norm"] == r["cat_norm"]].copy()
+        if tipo == "subio":
+            df_det = df_cat[df_cat["pct"] > 0.5].sort_values("pct", ascending=False)
+            titulo = f"Productos que subieron ({len(df_det)})"
+        else:
+            df_det = df_cat[df_cat["pct"] < -0.5].sort_values("pct", ascending=True)
+            titulo = f"Productos que bajaron ({len(df_det)})"
+
+        if df_det.empty:
+            st.caption("Sin variación significativa por producto.")
+            return
+
+        st.markdown(
+            f'<div style="font-size:.70rem;font-weight:700;color:{color};'
+            f'text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">'
+            f'{titulo}</div>',
+            unsafe_allow_html=True,
+        )
+        for _, p in df_det.iterrows():
+            s  = "+" if p["pct"] > 0 else ""
+            ic = "▲" if p["pct"] > 0 else "▼"
+            c  = RED if p["pct"] > 0 else GREEN
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:.32rem .6rem;border-radius:8px;margin-bottom:.18rem;'
+                f'background:{c}0D;border-left:2px solid {c}55;">'
+                f'<div style="min-width:0;">'
+                f'<span style="font-size:.78rem;font-weight:600;color:var(--t0);">{p["producto"]}</span>'
+                f'<span style="font-size:.67rem;color:var(--t2);margin-left:.35rem;">{p["presentacion"]}</span>'
+                f'</div>'
+                f'<span style="font-size:.82rem;font-weight:800;color:{c};'
+                f'white-space:nowrap;margin-left:.5rem;">{ic} {s}{p["pct"]:.1f}%</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown(
+            f'<div style="font-size:.67rem;color:var(--t3);margin-top:.4rem;">'
+            f'RD$ anterior → actual por producto</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def _semana_n_atras(todas_semanas, semana_act, n):
@@ -182,7 +236,7 @@ def render_inicio(ctx):
     ref_lbl_l = fmt_sem(semana_ref, "larga")
 
     # ── Calcular deltas ───────────────────────────────────────
-    delta_df = _calc_categoria_delta(df_analisis, semana_act, semana_ref)
+    delta_df, m_productos = _calc_categoria_delta(df_analisis, semana_act, semana_ref)
 
     if delta_df.empty:
         st.info("No hay productos en común entre las semanas para calcular variaciones.")
@@ -191,7 +245,8 @@ def render_inicio(ctx):
     # Filtro por nombre de categoría
     if buscar_cat.strip():
         bl = buscar_cat.strip().lower()
-        delta_df = delta_df[delta_df["cat_norm"].str.lower().str.contains(bl, na=False)]
+        delta_df   = delta_df[delta_df["cat_norm"].str.lower().str.contains(bl, na=False)]
+        m_productos = m_productos[m_productos["cat_norm"].str.lower().str.contains(bl, na=False)]
         if delta_df.empty:
             st.info(f"No se encontraron categorías que coincidan con '{buscar_cat}'.")
             return
@@ -271,7 +326,7 @@ def render_inicio(ctx):
     apply_dark_layout(fig)
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Top movers ────────────────────────────────────────────
+    # ── Top movers (desplegables) ─────────────────────────────
     top_sub = delta_df[delta_df["pct_cambio"] >  0.5].head(3)
     top_baj = delta_df[delta_df["pct_cambio"] < -0.5].sort_values("pct_cambio").head(3)
 
@@ -284,13 +339,7 @@ def render_inicio(ctx):
                 unsafe_allow_html=True,
             )
             for _, r in top_sub.iterrows():
-                st.markdown(
-                    _card_cat(r["cat_norm"], r["pct_cambio"],
-                              r["n_productos"], r["n_subio"], r["n_bajo"],
-                              size="small"),
-                    unsafe_allow_html=True,
-                )
-                st.markdown("<div style='margin-bottom:.3rem'></div>", unsafe_allow_html=True)
+                _render_card_expandible(r, m_productos, tipo="subio")
 
         with col_dn:
             st.markdown(
@@ -299,13 +348,7 @@ def render_inicio(ctx):
                 unsafe_allow_html=True,
             )
             for _, r in top_baj.iterrows():
-                st.markdown(
-                    _card_cat(r["cat_norm"], r["pct_cambio"],
-                              r["n_productos"], r["n_subio"], r["n_bajo"],
-                              size="small"),
-                    unsafe_allow_html=True,
-                )
-                st.markdown("<div style='margin-bottom:.3rem'></div>", unsafe_allow_html=True)
+                _render_card_expandible(r, m_productos, tipo="bajo")
 
     # ── Info de contexto ──────────────────────────────────────
     st.divider()
